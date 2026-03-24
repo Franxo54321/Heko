@@ -220,7 +220,7 @@ def _subject_options() -> list[str]:
 # ---------------------------------------------------------------------------
 
 st.sidebar.title("📚 Agente de Estudio")
-st.sidebar.markdown(f"👤 **{USER.get('display_name') or USER['username']}**")
+st.sidebar.markdown(f"👤 **{USER.get('display_name') or USER.get('username', '')}**")
 if st.sidebar.button("Cerrar sesión"):
     if st.session_state.session_token:
         database.delete_session(st.session_state.session_token)
