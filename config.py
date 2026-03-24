@@ -22,6 +22,7 @@ ANTHROPIC_MODEL = _get("ANTHROPIC_MODEL") or "claude-sonnet-4-20250514"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
 DB_PATH = os.path.join(DATA_DIR, "study_agent.db")
+DATABASE_URL = _get("DATABASE_URL")
 
 # SMTP para verificación de correo
 SMTP_HOST = _get("SMTP_HOST") or "smtp.gmail.com"
