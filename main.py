@@ -19,16 +19,6 @@ from services import email_service
 
 orchestrator.init()
 
-# En bare-mode (Railway startup/health-check) no existe ScriptRunContext.
-# sys.exit(0) es capturado por el ScriptRunner de Streamlit cuando está activo;
-# si no está activo simplemente termina el proceso sin crashear el deploy.
-try:
-    from streamlit.runtime.scriptrunner import get_script_run_ctx as _get_ctx
-    if _get_ctx() is None:
-        import sys; sys.exit(0)
-except Exception:
-    pass
-
 st.set_page_config(
     page_title="Agente de Estudio",
     page_icon="📚",
@@ -206,9 +196,14 @@ if st.session_state.user is None:
     _show_auth()
     st.stop()
 
-# Usuario autenticado
-USER: dict = st.session_state.user  # type: ignore[assignment]
-UID: int = USER["id"]
+# Usuario autenticado (guard defensivo para bare-mode de Railway)
+if st.session_state.user is None:
+    st.stop()
+
+USER: dict = st.session_state.get("user") or {}  # type: ignore[assignment]
+UID: int = USER.get("id", 0)  # type: ignore[assignment]
+if not UID:
+    st.stop()
 
 
 # ---------------------------------------------------------------------------
