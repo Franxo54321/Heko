@@ -188,9 +188,12 @@ if st.session_state.user is None:
     _show_auth()
     st.stop()
 
-# Usuario autenticado
-USER: dict = st.session_state.user
-UID: int = USER["id"]
+# Guard defensivo: en Railway el bare-mode puede no detenerse en st.stop()
+USER: dict | None = st.session_state.user
+if USER is None:
+    st.stop()
+
+UID: int = USER["id"]  # type: ignore[index]
 
 
 # ---------------------------------------------------------------------------
