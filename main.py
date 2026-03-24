@@ -36,6 +36,14 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ---------------------------------------------------------------------------
+# Antigravity CSS - glassmorphism, animaciones, profundidad espacial
+# ---------------------------------------------------------------------------
+_css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
+if os.path.exists(_css_path):
+    with open(_css_path, encoding="utf-8") as _f:
+        st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
+
 # Cookie manager para sesión persistente
 cookie_manager = stx.CookieManager(key="heko_cookies")
 
