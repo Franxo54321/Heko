@@ -93,7 +93,10 @@ def _main() -> None:  # noqa: C901
                     if database.verify_email_code(pv["user_id"], code_input):
                         user = database.get_user(pv["user_id"])
                         token = database.create_session(pv["user_id"])
-                        cookie_manager.set("heko_session", token)
+                        try:
+                            cookie_manager.set("heko_session", token)
+                        except Exception:
+                            pass
                         st.session_state.user = user
                         st.session_state.session_token = token
                         st.session_state.pending_verification = None
@@ -130,7 +133,10 @@ def _main() -> None:  # noqa: C901
                         if user.get("is_admin"):
                             # Admin siempre verificado
                             token = database.create_session(user["id"])
-                            cookie_manager.set("heko_session", token)
+                            try:
+                                cookie_manager.set("heko_session", token)
+                            except Exception:
+                                pass
                             st.session_state.user = user
                             st.session_state.session_token = token
                             st.rerun()
@@ -150,7 +156,10 @@ def _main() -> None:  # noqa: C901
                             st.rerun()
                         else:
                             token = database.create_session(user["id"])
-                            cookie_manager.set("heko_session", token)
+                            try:
+                                cookie_manager.set("heko_session", token)
+                            except Exception:
+                                pass
                             st.session_state.user = user
                             st.session_state.session_token = token
                             st.rerun()
@@ -186,7 +195,10 @@ def _main() -> None:  # noqa: C901
                         user = database.get_user(uid)
                         if user.get("is_admin"):
                             token = database.create_session(uid)
-                            cookie_manager.set("heko_session", token)
+                            try:
+                                cookie_manager.set("heko_session", token)
+                            except Exception:
+                                pass
                             st.session_state.user = user
                             st.session_state.session_token = token
                             st.success("¡Cuenta admin creada y verificada!")
@@ -239,7 +251,10 @@ def _main() -> None:  # noqa: C901
     if st.sidebar.button("Cerrar sesión"):
         if st.session_state.session_token:
             database.delete_session(st.session_state.session_token)
-        cookie_manager.delete("heko_session")
+        try:
+            cookie_manager.delete("heko_session")
+        except Exception:
+            pass
         st.session_state.user = None
         st.session_state.session_token = None
         st.rerun()
