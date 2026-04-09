@@ -57,20 +57,21 @@ def _main() -> None:  # noqa: C901
     # Intentar restaurar sesión desde cookie si no hay usuario activo
     if st.session_state.user is None:
         if "cookie_loaded" not in st.session_state:
-            # Primer render: el CookieManager aún no leyó las cookies.
-            # Forzar un segundo render donde sí estarán disponibles.
             st.session_state.cookie_loaded = False
             st.rerun()
 
     if not st.session_state.cookie_loaded:
         st.session_state.cookie_loaded = True
-        saved_token = cookie_manager.get("heko_session")
-        if saved_token:
-            user = database.get_user_by_session(saved_token)
-            if user:
-                st.session_state.user = user
-                st.session_state.session_token = saved_token
-                st.rerun()
+        try:
+            saved_token = cookie_manager.get("heko_session")
+            if saved_token:
+                user = database.get_user_by_session(saved_token)
+                if user:
+                    st.session_state.user = user
+                    st.session_state.session_token = saved_token
+                    st.rerun()
+        except Exception:
+            pass  # Cookies aún no inicializadas, próximo rerun las tendrá
 
 
     # =========================================================================
