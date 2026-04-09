@@ -8,6 +8,8 @@ import tempfile
 import streamlit as st
 import extra_streamlit_components as stx
 from streamlit.runtime.scriptrunner import get_script_run_ctx as _get_ctx
+from streamlit_cookies_controller import CookieController
+
 
 import config
 from agents import orchestrator, tutor
@@ -38,7 +40,7 @@ def _main() -> None:  # noqa: C901
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
 
     # Cookie manager para sesión persistente
-    cookie_manager = stx.CookieManager(key="heko_cookies")
+    cookie_manager = CookieController(key="heko_cookies")
 
     # Estado de sesión
     for key, default in [
@@ -54,12 +56,21 @@ def _main() -> None:  # noqa: C901
 
     # Intentar restaurar sesión desde cookie si no hay usuario activo
     if st.session_state.user is None:
+        if "cookie_loaded" not in st.session_state:
+            # Primer render: el CookieManager aún no leyó las cookies.
+            # Forzar un segundo render donde sí estarán disponibles.
+            st.session_state.cookie_loaded = False
+            st.rerun()
+
+    if not st.session_state.cookie_loaded:
+        st.session_state.cookie_loaded = True
         saved_token = cookie_manager.get("heko_session")
         if saved_token:
             user = database.get_user_by_session(saved_token)
             if user:
                 st.session_state.user = user
                 st.session_state.session_token = saved_token
+                st.rerun()
 
 
     # =========================================================================
@@ -196,11 +207,11 @@ def _main() -> None:  # noqa: C901
 
 
     if st.session_state.user is None:
+    # Si las cookies todavía no se cargaron, mostrar spinner en lugar de auth
+        if not st.session_state.get("cookie_loaded", False):
+            st.spinner("Cargando sesión...")
+            st.stop()
         _show_auth()
-        st.stop()
-
-    # Usuario autenticado (guard defensivo para bare-mode de Railway)
-    if st.session_state.user is None:
         st.stop()
 
     USER: dict = st.session_state.get("user") or {}  # type: ignore[assignment]
