@@ -3,10 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# En Streamlit Cloud las variables vienen de st.secrets, no del .env
-# Intentamos leerlas desde st.secrets si están disponibles
 def _get(key: str, default: str = "") -> str:
-    """Lee primero de os.environ (incluye .env), luego de st.secrets si existe."""
     val = os.getenv(key, "")
     if val:
         return val
@@ -30,9 +27,5 @@ SMTP_PORT = int(_get("SMTP_PORT") or "587")
 SMTP_USER = _get("SMTP_USER")
 SMTP_PASSWORD = _get("SMTP_PASSWORD")
 SMTP_FROM_NAME = _get("SMTP_FROM_NAME") or "Agente de Estudio"
-
-# Admin por defecto (se crea al iniciar si no existe)
-ADMIN_USERNAME = _get("ADMIN_USERNAME") or "admin"
-ADMIN_PASSWORD = _get("ADMIN_PASSWORD") or "admin"
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
