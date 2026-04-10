@@ -42,6 +42,10 @@ def _main() -> None:  # noqa: C901
     # Cookie manager para sesión persistente
     cookie_manager = CookieController(key="heko_cookies")
 
+    # CookieController necesita 1-2 ciclos de render para inicializarse.
+    # getAll() retorna None mientras no esté listo, dict cuando sí.
+    _cookies_ready = cookie_manager.getAll() is not None
+
     # Estado de sesión
     for key, default in [
         ("tutor_messages", []),
@@ -54,24 +58,15 @@ def _main() -> None:  # noqa: C901
         if key not in st.session_state:
             st.session_state[key] = default
 
-    # Intentar restaurar sesión desde cookie si no hay usuario activo
-    if st.session_state.user is None:
-        if "cookie_loaded" not in st.session_state:
-            st.session_state.cookie_loaded = False
-            st.rerun()
-
-    if not st.session_state.cookie_loaded:
-        st.session_state.cookie_loaded = True
-        try:
-            saved_token = cookie_manager.get("heko_session")
-            if saved_token:
-                user = database.get_user_by_session(saved_token)
-                if user:
-                    st.session_state.user = user
-                    st.session_state.session_token = saved_token
-                    st.rerun()
-        except Exception:
-            pass  # Cookies aún no inicializadas, próximo rerun las tendrá
+    # Restaurar sesión desde cookie (solo si el controller ya está listo)
+    if st.session_state.user is None and _cookies_ready:
+        saved_token = cookie_manager.get("heko_session")
+        if saved_token:
+            user = database.get_user_by_session(saved_token)
+            if user:
+                st.session_state.user = user
+                st.session_state.session_token = saved_token
+                st.rerun()
 
 
     # =========================================================================
@@ -220,9 +215,9 @@ def _main() -> None:  # noqa: C901
 
 
     if st.session_state.user is None:
-    # Si las cookies todavía no se cargaron, mostrar spinner en lugar de auth
-        if not st.session_state.get("cookie_loaded", False):
-            st.spinner("Cargando sesión...")
+        if not _cookies_ready:
+            # Controller aún no listo; st.stop() espera al próximo render
+            # (CookieController dispara rerun automático al inicializarse)
             st.stop()
         _show_auth()
         st.stop()
@@ -252,7 +247,7 @@ def _main() -> None:  # noqa: C901
         if st.session_state.session_token:
             database.delete_session(st.session_state.session_token)
         try:
-            cookie_manager.delete("heko_session")
+            cookie_manager.remove("heko_session")
         except Exception:
             pass
         st.session_state.user = None
