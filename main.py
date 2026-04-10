@@ -297,16 +297,23 @@ def _main() -> None:  # noqa: C901
 
         subjects = database.get_user_subjects(UID)
 
-        # Crear nueva materia
+        # Crear nueva materia (on_click evita deltaPath al cambiar widget tree)
+        def _do_create_subject():
+            name = st.session_state.get("_new_subj", "").strip()
+            if name:
+                r = database.create_subject(UID, name)
+                st.session_state["_subj_toast"] = (
+                    ("success", f"Materia **{name}** creada.") if r is not None
+                    else ("warning", "Esa materia ya existe.")
+                )
+
         col_new, col_btn = st.columns([3, 1])
-        new_subj = col_new.text_input("Nueva materia", placeholder="Ej: Álgebra Lineal")
-        if col_btn.button("➕ Crear", type="primary") and new_subj.strip():
-            result = database.create_subject(UID, new_subj.strip())
-            if result is None:
-                st.warning("Esa materia ya existe.")
-            else:
-                st.success(f"Materia **{new_subj.strip()}** creada.")
-                st.rerun()
+        col_new.text_input("Nueva materia", placeholder="Ej: Álgebra Lineal", key="_new_subj")
+        col_btn.button("➕ Crear", type="primary", on_click=_do_create_subject)
+
+        _toast = st.session_state.pop("_subj_toast", None)
+        if _toast:
+            getattr(st, _toast[0])(_toast[1])
 
         st.divider()
         st.subheader("Materias actuales")
@@ -315,9 +322,8 @@ def _main() -> None:  # noqa: C901
             for s in subjects:
                 col_name, col_del = st.columns([4, 1])
                 col_name.markdown(f"📘 **{s}**")
-                if col_del.button("🗑️", key=f"del_subj_{s}"):
-                    database.delete_subject(UID, s)
-                    st.rerun()
+                col_del.button("🗑️", key=f"del_subj_{s}",
+                               on_click=database.delete_subject, args=(UID, s))
         else:
             st.info("No tenés materias creadas. Creá una arriba.")
 
