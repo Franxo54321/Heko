@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 import tempfile
+import urllib.parse
 
 import streamlit as st
-import extra_streamlit_components as stx
+import streamlit.components.v1 as _components
 from streamlit.runtime.scriptrunner import get_script_run_ctx as _get_ctx
 
 
@@ -38,12 +39,21 @@ def _main() -> None:  # noqa: C901
         with open(_css_path, encoding="utf-8") as _f:
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
 
-    # Cookie manager para sesión persistente
-    cookie_manager = stx.CookieManager(key="heko_cookies")
+    # ---------------------------------------------------------------------------
+    # Helpers de cookies — sin componentes de terceros (evita deltaPath crash)
+    # ---------------------------------------------------------------------------
+    def _set_cookie(name: str, value: str, max_age: int = 2592000) -> None:
+        safe = urllib.parse.quote(str(value), safe="")
+        _components.html(
+            f"<script>document.cookie='{name}={safe};path=/;max-age={max_age};SameSite=Lax';</script>",
+            height=0,
+        )
 
-    # stx.CookieManager necesita 1-2 ciclos de render para inicializarse.
-    # get_all() retorna None/vacío mientras no esté listo.
-    _cookies_ready = cookie_manager.get_all() is not None
+    def _delete_cookie(name: str) -> None:
+        _components.html(
+            f"<script>document.cookie='{name}=;path=/;max-age=0;path=/';</script>",
+            height=0,
+        )
 
     # Estado de sesión
     for key, default in [
@@ -57,15 +67,15 @@ def _main() -> None:  # noqa: C901
         if key not in st.session_state:
             st.session_state[key] = default
 
-    # Restaurar sesión desde cookie (solo si el controller ya está listo)
-    if st.session_state.user is None and _cookies_ready:
-        saved_token = cookie_manager.get("heko_session")
+    # Restaurar sesión desde cookie (lectura nativa via st.context.cookies)
+    if st.session_state.user is None:
+        saved_token = st.context.cookies.get("heko_session")
         if saved_token:
+            saved_token = urllib.parse.unquote(saved_token)
             user = database.get_user_by_session(saved_token)
             if user:
                 st.session_state.user = user
                 st.session_state.session_token = saved_token
-                st.rerun()
 
 
     # =========================================================================
@@ -88,7 +98,7 @@ def _main() -> None:  # noqa: C901
                         user = database.get_user(pv["user_id"])
                         token = database.create_session(pv["user_id"])
                         try:
-                            cookie_manager.set("heko_session", token)
+                            _set_cookie("heko_session", token)
                         except Exception:
                             pass
                         st.session_state.user = user
@@ -128,7 +138,7 @@ def _main() -> None:  # noqa: C901
                             # Admin siempre verificado
                             token = database.create_session(user["id"])
                             try:
-                                cookie_manager.set("heko_session", token)
+                                _set_cookie("heko_session", token)
                             except Exception:
                                 pass
                             st.session_state.user = user
@@ -151,7 +161,7 @@ def _main() -> None:  # noqa: C901
                         else:
                             token = database.create_session(user["id"])
                             try:
-                                cookie_manager.set("heko_session", token)
+                                _set_cookie("heko_session", token)
                             except Exception:
                                 pass
                             st.session_state.user = user
@@ -190,7 +200,7 @@ def _main() -> None:  # noqa: C901
                         if user.get("is_admin"):
                             token = database.create_session(uid)
                             try:
-                                cookie_manager.set("heko_session", token)
+                                _set_cookie("heko_session", token)
                             except Exception:
                                 pass
                             st.session_state.user = user
@@ -214,10 +224,6 @@ def _main() -> None:  # noqa: C901
 
 
     if st.session_state.user is None:
-        if not _cookies_ready:
-            # Controller aún no listo; st.stop() espera al próximo render
-            # (CookieController dispara rerun automático al inicializarse)
-            st.stop()
         _show_auth()
         st.stop()
 
@@ -246,7 +252,7 @@ def _main() -> None:  # noqa: C901
         if st.session_state.session_token:
             database.delete_session(st.session_state.session_token)
         try:
-            cookie_manager.delete("heko_session")
+            _delete_cookie("heko_session")
         except Exception:
             pass
         st.session_state.user = None
