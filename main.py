@@ -7,7 +7,6 @@ import tempfile
 import urllib.parse
 
 import streamlit as st
-import streamlit.components.v1 as _components
 from streamlit.runtime.scriptrunner import get_script_run_ctx as _get_ctx
 
 
@@ -40,20 +39,22 @@ def _main() -> None:  # noqa: C901
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
 
     # ---------------------------------------------------------------------------
-    # Helpers de cookies — sin componentes de terceros (evita deltaPath crash)
+    # Cookies — posición fija en el árbol para evitar deltaPath crash
     # ---------------------------------------------------------------------------
-    def _set_cookie(name: str, value: str, max_age: int = 2592000) -> None:
+    def _set_cookie(name: str, value: str) -> None:
         safe = urllib.parse.quote(str(value), safe="")
-        _components.html(
-            f"<script>document.cookie='{name}={safe};path=/;max-age={max_age};SameSite=Lax';</script>",
-            height=0,
+        st.session_state["_pending_cookie"] = (
+            f"document.cookie='{name}={safe};path=/;max-age=2592000;SameSite=Lax';"
         )
 
     def _delete_cookie(name: str) -> None:
-        _components.html(
-            f"<script>document.cookie='{name}=;path=/;max-age=0;path=/';</script>",
-            height=0,
+        st.session_state["_pending_cookie"] = (
+            f"document.cookie='{name}=;path=/;max-age=0;path=/';"
         )
+
+    # Ejecutar cookie pendiente (posición FIJA — siempre se renderiza aquí)
+    _ck_js = st.session_state.pop("_pending_cookie", None)
+    st.html(f"<script>{_ck_js}</script>" if _ck_js else "<span></span>")
 
     # Estado de sesión
     for key, default in [
