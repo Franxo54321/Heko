@@ -8,7 +8,6 @@ import tempfile
 import streamlit as st
 import extra_streamlit_components as stx
 from streamlit.runtime.scriptrunner import get_script_run_ctx as _get_ctx
-from streamlit_cookies_controller import CookieController
 
 
 import config
@@ -40,11 +39,11 @@ def _main() -> None:  # noqa: C901
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
 
     # Cookie manager para sesión persistente
-    cookie_manager = CookieController(key="heko_cookies")
+    cookie_manager = stx.CookieManager(key="heko_cookies")
 
-    # CookieController necesita 1-2 ciclos de render para inicializarse.
-    # getAll() retorna None mientras no esté listo, dict cuando sí.
-    _cookies_ready = cookie_manager.getAll() is not None
+    # stx.CookieManager necesita 1-2 ciclos de render para inicializarse.
+    # get_all() retorna None/vacío mientras no esté listo.
+    _cookies_ready = cookie_manager.get_all() is not None
 
     # Estado de sesión
     for key, default in [
@@ -247,7 +246,7 @@ def _main() -> None:  # noqa: C901
         if st.session_state.session_token:
             database.delete_session(st.session_state.session_token)
         try:
-            cookie_manager.remove("heko_session")
+            cookie_manager.delete("heko_session")
         except Exception:
             pass
         st.session_state.user = None
