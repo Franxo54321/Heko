@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Tutor — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">🎓 Tutor Inteligente</h1>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="solve">Resolver Problema</button>
+    <button class="tab-btn" data-tab="file">📎 Desde archivo</button>
+    <button class="tab-btn" data-tab="guide">Práctica Guiada</button>
+    <button class="tab-btn" data-tab="chat">Chat con Tutor</button>
+</div>
+
+<!-- Solve -->
+<div class="tab-panel active" id="tab-solve">
+    <div class="section glass-card">
+        <div class="form-group">
+            <label>Materia</label>
+            <select id="solveSubject">
+                <option value="">General</option>
+                {% for s in subjects %}<option>{{ s }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Describe el problema</label>
+            <textarea id="solveProblem" rows="5" placeholder="Ej: Calcula la integral de x² sen(x) dx"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="solveProblem()">🔍 Resolver paso a paso</button>
+        <div id="solveResult" class="result-box hidden"></div>
+    </div>
+</div>
+
+<!-- File -->
+<div class="tab-panel" id="tab-file">
+    <div class="section glass-card">
+        <div class="form-group">
+            <label>Materia</label>
+            <select id="fileSubject">
+                <option value="">General</option>
+                {% for s in subjects %}<option>{{ s }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Archivo con problemas</label>
+            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp">
+        </div>
+        <button class="btn btn-primary" onclick="solveFile()">🔓 Resolver todo</button>
+        <div id="fileExtracted" class="result-box hidden"></div>
+        <div id="fileResult" class="result-box hidden"></div>
+    </div>
+</div>
+
+<!-- Guide -->
+<div class="tab-panel" id="tab-guide">
+    <div class="section glass-card">
+        <p>Escribe un problema y tu intento de solución. El tutor evaluará tu trabajo.</p>
+        <div class="form-group">
+            <label>Materia</label>
+            <select id="guideSubject">
+                <option value="">General</option>
+                {% for s in subjects %}<option>{{ s }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>El problema</label>
+            <textarea id="guideProblem" rows="4" placeholder="El enunciado del problema..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Tu intento de solución (opcional)</label>
+            <textarea id="guideAttempt" rows="4" placeholder="Tu resolución o déjalo vacío para guía desde cero..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="guidePractice()">📝 Evaluar mi intento</button>
+        <div id="guideResult" class="result-box hidden"></div>
+    </div>
+</div>
+
+<!-- Chat -->
+<div class="tab-panel" id="tab-chat">
+    <div class="section glass-card">
+        <div class="form-group">
+            <label>Materia del contexto</label>
+            <select id="chatSubject">
+                <option value="General">General</option>
+                {% for s in subjects %}<option>{{ s }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="chat-container" id="chatContainer"></div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Escribe tu pregunta..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="btn btn-primary" onclick="sendChat()">Enviar</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearChat()" style="margin-top:8px">🗑️ Limpiar chat</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+// Loading helper
+function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
+    btn.textContent = loading ? '⏳ Procesando...' : btn.dataset.originalText;
+}
+
+// Solve problem
+async function solveProblem() {
+    const btn = event.target;
+    const problem = document.getElementById('solveProblem').value;
+    const subject = document.getElementById('solveSubject').value;
+    if (!problem) return;
+
+    setLoading(btn, true);
+    const fd = new FormData();
+    fd.append('problem', problem);
+    fd.append('subject', subject);
+
+    try {
+        const res = await fetch('/tutor/solve', {method: 'POST', body: fd});
+        const data = await res.json();
+        const box = document.getElementById('solveResult');
+        box.innerHTML = data.error ? `<p class="text-error">${data.error}</p>` : renderMarkdown(data.solution);
+        box.classList.remove('hidden');
+    } catch(e) {
+        alert('Error: ' + e.message);
+    } finally {
+        setLoading(btn, false);
+    }
+}
+
+// Solve file
+async function solveFile() {
+    const btn = event.target;
+    const file = document.getElementById('fileInput').files[0];
+    const subject = document.getElementById('fileSubject').value;
+    if (!file) return alert('Selecciona un archivo.');
+
+    setLoading(btn, true);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('subject', subject);
+
+    try {
+        const res = await fetch('/tutor/solve-file', {method: 'POST', body: fd});
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+        } else {
+            if (data.extracted) {
+                const ext = document.getElementById('fileExtracted');
+                ext.innerHTML = '<h3>📄 Contenido extraído</h3>' + renderMarkdown(data.extracted);
+                ext.classList.remove('hidden');
+            }
+            const box = document.getElementById('fileResult');
+            box.innerHTML = '<h3>Solución</h3>' + renderMarkdown(data.solution);
+            box.classList.remove('hidden');
+        }
+    } catch(e) {
+        alert('Error: ' + e.message);
+    } finally {
+        setLoading(btn, false);
+    }
+}
+
+// Guided practice
+async function guidePractice() {
+    const btn = event.target;
+    const problem = document.getElementById('guideProblem').value;
+    const attempt = document.getElementById('guideAttempt').value;
+    const subject = document.getElementById('guideSubject').value;
+    if (!problem) return;
+
+    setLoading(btn, true);
+    const fd = new FormData();
+    fd.append('problem', problem);
+    fd.append('attempt', attempt);
+    fd.append('subject', subject);
+
+    try {
+        const res = await fetch('/tutor/guide', {method: 'POST', body: fd});
+        const data = await res.json();
+        const box = document.getElementById('guideResult');
+        box.innerHTML = data.error ? `<p class="text-error">${data.error}</p>` : renderMarkdown(data.feedback);
+        box.classList.remove('hidden');
+    } catch(e) {
+        alert('Error: ' + e.message);
+    } finally {
+        setLoading(btn, false);
+    }
+}
+
+// Chat
+let chatMessages = [];
+
+function addChatMessage(role, content) {
+    const container = document.getElementById('chatContainer');
+    const div = document.createElement('div');
+    div.className = 'chat-message chat-' + role;
+    div.innerHTML = `<div class="chat-bubble">${role === 'user' ? content : renderMarkdown(content)}</div>`;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    chatMessages.push({role: 'user', content: msg});
+    addChatMessage('user', msg);
+    input.value = '';
+
+    const subject = document.getElementById('chatSubject').value;
+
+    try {
+        const res = await fetch('/tutor/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({messages: chatMessages, subject})
+        });
+        const data = await res.json();
+        if (data.error) {
+            addChatMessage('assistant', 'Error: ' + data.error);
+        } else {
+            chatMessages.push({role: 'assistant', content: data.response});
+            addChatMessage('assistant', data.response);
+        }
+    } catch(e) {
+        addChatMessage('assistant', 'Error: ' + e.message);
+    }
+}
+
+function clearChat() {
+    chatMessages = [];
+    document.getElementById('chatContainer').innerHTML = '';
+}
+</script>
+{% endblock %}

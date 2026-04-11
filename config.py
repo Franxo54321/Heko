@@ -4,14 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def _get(key: str, default: str = "") -> str:
-    val = os.getenv(key, "")
-    if val:
-        return val
-    try:
-        import streamlit as st
-        return str(st.secrets.get(key, default))
-    except Exception:
-        return default
+    return os.getenv(key, "") or default
 
 
 ANTHROPIC_API_KEY = _get("ANTHROPIC_API_KEY")

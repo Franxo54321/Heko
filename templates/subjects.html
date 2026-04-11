@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Mis Materias — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">⚙️ Gestionar Materias</h1>
+<p>Crea o elimina materias. Estas aparecerán como opciones al subir materiales, crear quizzes, etc.</p>
+
+<div class="section glass-card">
+    <form method="POST" class="form-row">
+        <input type="hidden" name="action" value="create">
+        <div class="form-group flex-1">
+            <input type="text" name="name" placeholder="Ej: Álgebra Lineal" required>
+        </div>
+        <button type="submit" class="btn btn-primary">➕ Crear</button>
+    </form>
+</div>
+
+<div class="section">
+    <h2>Materias actuales</h2>
+    {% if subjects %}
+        {% for s in subjects %}
+        <div class="glass-card subject-row">
+            <span>📘 <strong>{{ s }}</strong></span>
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="name" value="{{ s }}">
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar la materia «{{ s }}»?')">🗑️</button>
+            </form>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="glass-card" style="padding:16px"><p>No tenés materias creadas. Creá una arriba.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

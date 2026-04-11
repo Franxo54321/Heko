@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Admin — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">👑 Panel de Administración</h1>
+<p>Gestiona los usuarios registrados en la plataforma.</p>
+
+<div class="metric-card glass-card" style="display:inline-block; margin-bottom:20px">
+    <span class="metric-value">{{ users|length }}</span>
+    <span class="metric-label">Total de usuarios</span>
+</div>
+
+<div class="section">
+    {% for u in users %}
+    <details class="glass-card expandable">
+        <summary>
+            {{ '👑 ' if u.is_admin else '' }}{{ u.display_name or u.username }} — {{ u.email or 'sin correo' }}
+            {% if u.id == current_user.id %}<em>(tú)</em>{% endif %}
+        </summary>
+        <div class="expandable-content">
+            <div class="form-row" style="gap:24px">
+                <div>
+                    <p><strong>ID:</strong> {{ u.id }}</p>
+                    <p><strong>Usuario:</strong> {{ u.username }}</p>
+                    <p><strong>Email:</strong> {{ u.email or '—' }}</p>
+                    <p><strong>Verificado:</strong> {{ '✅' if u.email_verified else '❌' }}</p>
+                    <p><strong>Admin:</strong> {{ '✅' if u.is_admin else '❌' }}</p>
+                    <p><strong>Registrado:</strong> {{ u.created_at[:16] }}</p>
+                </div>
+                <div>
+                    <form method="POST" action="{{ url_for('admin_edit_user', user_id=u.id) }}">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" name="display_name" value="{{ u.display_name or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" value="{{ u.email or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" name="is_admin" {% if u.is_admin %}checked{% endif %}> Es admin</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Nueva contraseña (vacío = no cambiar)</label>
+                            <input type="password" name="new_password" autocomplete="new-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                    </form>
+
+                    {% if u.id != current_user.id %}
+                    <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="margin-top:12px">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar a {{ u.username }}? Se borrarán TODOS sus datos.')">🗑️ Eliminar usuario</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </details>
+    {% endfor %}
+</div>
+{% endblock %}

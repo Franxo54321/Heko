@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Resultado del Quiz — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">📊 Resultado del Quiz</h1>
+
+<div class="section glass-card" style="text-align:center">
+    {% if results.puntaje >= 80 %}
+    <div class="score-display score-good">🎉 {{ results.puntaje }}%</div>
+    <p>¡Excelente!</p>
+    {% elif results.puntaje >= 60 %}
+    <div class="score-display score-ok">📊 {{ results.puntaje }}%</div>
+    <p>Buen trabajo, pero hay margen de mejora.</p>
+    {% else %}
+    <div class="score-display score-bad">📊 {{ results.puntaje }}%</div>
+    <p>Necesitas repasar más.</p>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Detalle de respuestas</h2>
+    {% for d in results.detalle %}
+    <details class="glass-card expandable">
+        <summary>
+            {{ '✅' if d.correcto else '❌' }} Pregunta {{ d.id }}: {{ d.enunciado[:80] }}...
+        </summary>
+        <div class="expandable-content">
+            <p><strong>Tu respuesta:</strong> {{ d.tu_respuesta }}</p>
+            <p><strong>Respuesta correcta:</strong> {{ d.respuesta_correcta }}</p>
+            <p><strong>Explicación:</strong> {{ d.explicacion }}</p>
+        </div>
+    </details>
+    {% endfor %}
+</div>
+
+<a href="{{ url_for('quizzes') }}" class="btn btn-secondary">← Volver a Quizzes</a>
+{% endblock %}

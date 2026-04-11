@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Quizzes — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">❓ Quizzes de Autoevaluación</h1>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="create">Crear Quiz</button>
+    <button class="tab-btn" data-tab="solve">Resolver Quiz</button>
+    <button class="tab-btn" data-tab="history">Historial</button>
+</div>
+
+<!-- Create -->
+<div class="tab-panel active" id="tab-create">
+    {% if materials %}
+    <div class="section glass-card">
+        <form method="POST" action="{{ url_for('create_quiz') }}">
+            <div class="form-group">
+                <label>Materiales (vacío = todos)</label>
+                <select name="material_ids" multiple class="multi-select">
+                    {% for m in materials %}
+                    <option value="{{ m.id }}">{{ m.filename }} ({{ m.subject }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group flex-1">
+                    <label>Número de preguntas</label>
+                    <input type="number" name="num_questions" value="10" min="5" max="30">
+                </div>
+                <div class="form-group flex-1">
+                    <label>Dificultad</label>
+                    <select name="difficulty">
+                        <option value="facil">Fácil</option>
+                        <option value="media" selected>Media</option>
+                        <option value="dificil">Difícil</option>
+                    </select>
+                </div>
+                <div class="form-group flex-1">
+                    <label>Materia</label>
+                    <select name="subject">
+                        <option value="">Todas</option>
+                        {% for s in subjects %}
+                        <option>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">🎯 Generar Quiz</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="section glass-card"><p>Primero sube materiales de estudio.</p></div>
+    {% endif %}
+</div>
+
+<!-- Solve -->
+<div class="tab-panel" id="tab-solve">
+    {% if quizzes %}
+    <div class="section">
+        {% for q in quizzes %}
+        <div class="glass-card" style="margin-bottom:12px; padding:16px; display:flex; justify-content:space-between; align-items:center">
+            <div>
+                <strong>[{{ q.id }}] {{ q.title }}</strong>
+                <span class="text-muted">({{ q.created_at[:10] }})</span>
+            </div>
+            <a href="{{ url_for('solve_quiz', quiz_id=q.id) }}" class="btn btn-primary btn-sm">Resolver</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="section glass-card"><p>No hay quizzes generados aún.</p></div>
+    {% endif %}
+</div>
+
+<!-- History -->
+<div class="tab-panel" id="tab-history">
+    {% if results %}
+    <div class="section">
+        {% for r in results %}
+        <div class="glass-card" style="margin-bottom:8px; padding:12px">
+            <strong>Quiz #{{ r.quiz_id }}</strong> — Puntaje: <strong>{{ r.score }}%</strong> — {{ r.completed_at[:16] }}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="section glass-card"><p class="text-muted">No hay resultados aún.</p></div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Agente de Estudio{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        {% if current_user %}
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>📚 Agente de Estudio</h2>
+                <button class="sidebar-toggle" id="sidebarClose" aria-label="Cerrar menú">✕</button>
+            </div>
+            <div class="sidebar-user">
+                👤 <strong>{{ current_user.display_name or current_user.username }}</strong>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">🏠 Inicio</a>
+                <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">📄 Subir Material</a>
+                <a href="{{ url_for('materials') }}" class="nav-link {% if request.endpoint == 'materials' %}active{% endif %}">📋 Mis Materiales</a>
+                <a href="{{ url_for('study_plan') }}" class="nav-link {% if request.endpoint == 'study_plan' %}active{% endif %}">📝 Plan de Estudio</a>
+                <a href="{{ url_for('quizzes') }}" class="nav-link {% if request.endpoint in ('quizzes', 'solve_quiz') %}active{% endif %}">❓ Quizzes</a>
+                <a href="{{ url_for('exam') }}" class="nav-link {% if request.endpoint == 'exam' %}active{% endif %}">📑 Modelo de Examen</a>
+                <a href="{{ url_for('tutor_page') }}" class="nav-link {% if request.endpoint == 'tutor_page' %}active{% endif %}">🎓 Tutor</a>
+                <a href="{{ url_for('progress') }}" class="nav-link {% if request.endpoint == 'progress' %}active{% endif %}">📊 Mi Progreso</a>
+                <a href="{{ url_for('subjects') }}" class="nav-link {% if request.endpoint == 'subjects' %}active{% endif %}">⚙️ Mis Materias</a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">👑 Admin</a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link logout-link">🚪 Cerrar sesión</a>
+            </div>
+        </aside>
+        {% endif %}
+
+        <!-- Main content -->
+        <main class="main-content {% if not current_user %}full-width{% endif %}">
+            <button class="sidebar-open" id="sidebarOpen" aria-label="Abrir menú">☰</button>
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">
+                    <span>{{ message }}</span>
+                    <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const openBtn = document.getElementById('sidebarOpen');
+    const closeBtn = document.getElementById('sidebarClose');
+    if (openBtn) openBtn.addEventListener('click', () => sidebar.classList.add('open'));
+    if (closeBtn) closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+
+    // Auto-dismiss flash messages
+    document.querySelectorAll('.flash').forEach(el => {
+        setTimeout(() => el.style.opacity = '0', 5000);
+        setTimeout(() => el.remove(), 5500);
+    });
+
+    // Markdown renderer helper
+    function renderMarkdown(text) {
+        const html = marked.parse(text || '');
+        return html;
+    }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

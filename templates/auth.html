@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión — Agente de Estudio{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card glass-card">
+        <h1 class="auth-title">📚 Agente de Estudio</h1>
+        <p class="auth-subtitle">Inicia sesión o crea una cuenta para comenzar.</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="login">Iniciar sesión</button>
+            <button class="tab-btn" data-tab="register">Registrarse</button>
+        </div>
+
+        <!-- Login -->
+        <div class="tab-panel active" id="tab-login">
+            <form method="POST" action="{{ url_for('auth') }}">
+                <input type="hidden" name="action" value="login">
+                <div class="form-group">
+                    <label for="login-user">Usuario o correo electrónico</label>
+                    <input type="text" id="login-user" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="login-pass">Contraseña</label>
+                    <input type="password" id="login-pass" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+            </form>
+        </div>
+
+        <!-- Register -->
+        <div class="tab-panel" id="tab-register">
+            <form method="POST" action="{{ url_for('auth') }}">
+                <input type="hidden" name="action" value="register">
+                <div class="form-group">
+                    <label for="reg-user">Nombre de usuario</label>
+                    <input type="text" id="reg-user" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Correo electrónico</label>
+                    <input type="email" id="reg-email" name="email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="reg-name">Nombre para mostrar (opcional)</label>
+                    <input type="text" id="reg-name" name="display_name" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="reg-pass">Contraseña</label>
+                    <input type="password" id="reg-pass" name="password" required minlength="4" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="reg-pass2">Confirmar contraseña</label>
+                    <input type="password" id="reg-pass2" name="password2" required minlength="4" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Crear cuenta</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

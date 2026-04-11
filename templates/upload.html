@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Subir Material — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">📄 Subir Material de Estudio</h1>
+
+<div class="section glass-card">
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-row">
+            <div class="form-group flex-1">
+                <label>Materia</label>
+                <select name="subject" onchange="toggleOtherSubject(this)">
+                    {% for s in subjects %}
+                    <option>{{ s }}</option>
+                    {% endfor %}
+                    <option value="Otra">Otra</option>
+                </select>
+            </div>
+            <div class="form-group flex-1 hidden" id="otherSubjectGroup">
+                <label>Especifica la materia</label>
+                <input type="text" name="other_subject">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Asignar a unidad</label>
+            <select name="unit_opt" onchange="toggleNewUnit(this)">
+                <option value="__none__">Sin unidad</option>
+                <option value="__new__">Nueva unidad</option>
+                {% for u in units %}
+                <option value="{{ u }}">{{ u }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group hidden" id="newUnitGroup">
+            <label>Nombre de la unidad</label>
+            <input type="text" name="new_unit" placeholder="Ej: Unidad 1 - Cinemática">
+        </div>
+
+        <div class="form-group">
+            <label>Archivos</label>
+            <div class="file-upload-area" id="dropZone">
+                <input type="file" name="files" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" required id="fileInput">
+                <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+                <p class="text-muted">PDF, PNG, JPG, GIF, WebP</p>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">🚀 Procesar archivos</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleNewUnit(sel) {
+    document.getElementById('newUnitGroup').classList.toggle('hidden', sel.value !== '__new__');
+}
+function toggleOtherSubject(sel) {
+    document.getElementById('otherSubjectGroup').classList.toggle('hidden', sel.value !== 'Otra');
+}
+</script>
+{% endblock %}

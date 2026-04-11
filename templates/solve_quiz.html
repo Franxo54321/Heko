@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Resolver Quiz — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">{{ quiz_data.titulo or 'Quiz' }}</h1>
+
+<form method="POST" class="section">
+    {% for p in preguntas %}
+    <div class="glass-card question-card">
+        <div class="question-header">
+            <strong>Pregunta {{ p.id }}</strong>
+            <span class="badge">{{ p.dificultad|default('media') }}</span>
+        </div>
+        <div class="question-body markdown-content">{{ p.enunciado }}</div>
+
+        {% if p.tipo == 'opcion_multiple' %}
+            {% for opt in p.opciones %}
+            <label class="radio-option">
+                <input type="radio" name="q_{{ p.id }}" value="{{ opt[0] }}" required>
+                <span>{{ opt }}</span>
+            </label>
+            {% endfor %}
+        {% elif p.tipo == 'verdadero_falso' %}
+            <label class="radio-option">
+                <input type="radio" name="q_{{ p.id }}" value="Verdadero" required>
+                <span>Verdadero</span>
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="q_{{ p.id }}" value="Falso" required>
+                <span>Falso</span>
+            </label>
+        {% elif p.tipo == 'desarrollo' %}
+            <textarea name="q_{{ p.id }}" rows="4" class="text-area" placeholder="Tu respuesta..."></textarea>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary btn-lg">✅ Enviar respuestas</button>
+</form>
+{% endblock %}

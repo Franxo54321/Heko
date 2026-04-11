@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Verificar correo — Agente de Estudio{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card glass-card">
+        <h1 class="auth-title">📧 Verificar correo</h1>
+        <p class="auth-subtitle">Se envió un código de verificación a <strong>{{ pv.email }}</strong>.</p>
+
+        <form method="POST">
+            <input type="hidden" name="action" value="verify">
+            <div class="form-group">
+                <label for="code">Código de 6 dígitos</label>
+                <input type="text" id="code" name="code" maxlength="6" pattern="[0-9]{6}"
+                       required autocomplete="one-time-code" class="code-input" placeholder="000000">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Verificar</button>
+        </form>
+
+        <div class="verify-actions">
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="resend">
+                <button type="submit" class="btn btn-secondary">Reenviar código</button>
+            </form>
+            <form method="POST" style="display:inline">
+                <input type="hidden" name="action" value="back">
+                <button type="submit" class="btn btn-ghost">Volver al inicio</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

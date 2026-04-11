@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Mi Progreso — Agente de Estudio{% endblock %}
+
+{% block content %}
+<h1 class="page-title">📊 Mi Progreso</h1>
+
+<div class="metrics-grid">
+    <div class="metric-card glass-card">
+        <span class="metric-value">{{ stats.total_materiales }}</span>
+        <span class="metric-label">📄 Materiales cargados</span>
+    </div>
+    <div class="metric-card glass-card">
+        <span class="metric-value">{{ stats.total_quizzes }}</span>
+        <span class="metric-label">❓ Quizzes creados</span>
+    </div>
+    <div class="metric-card glass-card">
+        <span class="metric-value">{{ stats.quizzes_completados }}</span>
+        <span class="metric-label">✅ Quizzes resueltos</span>
+    </div>
+    <div class="metric-card glass-card">
+        <span class="metric-value">{{ stats.puntaje_promedio }}%</span>
+        <span class="metric-label">📊 Puntaje promedio</span>
+    </div>
+</div>
+
+<div class="section">
+    <h2>Resultados recientes</h2>
+    {% set recent = stats.resultados_recientes|default([]) %}
+    {% if recent %}
+        {% for r in recent %}
+        <div class="glass-card" style="margin-bottom:8px; padding:12px">
+            {% if r.score >= 80 %}🟢{% elif r.score >= 60 %}🟡{% else %}🔴{% endif %}
+            <strong>{{ r.title }}</strong> — {{ r.score }}% — {{ r.completed_at[:16] }}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="glass-card" style="padding:16px">
+        <p>No hay resultados aún. Resuelve quizzes para ver tu progreso aquí.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <h2>Materiales por materia</h2>
+    {% if subjects_count %}
+        {% for subj, count in subjects_count.items() %}
+        <div class="glass-card" style="margin-bottom:8px; padding:12px">
+            <strong>{{ subj }}</strong>: {{ count }} material(es)
+        </div>
+        {% endfor %}
+    {% else %}
+    <p class="text-muted">No hay materiales cargados.</p>
+    {% endif %}
+</div>
+{% endblock %}
