@@ -24,8 +24,16 @@ from services import email_service
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
+
+# SECRET_KEY debe ser estable entre workers y reinicios.
+# Fallback fijo para que funcione sin variable de entorno (NO ideal para producción).
+_fallback_key = "heko-default-secret-change-me-in-production-2026"
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.getenv("SECRET_KEY") or _fallback_key
+
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True  # Railway usa HTTPS
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
 
