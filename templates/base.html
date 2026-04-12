@@ -1,124 +1,286 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Agente de Estudio{% endblock %}</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Apply stored theme before paint to avoid flash -->
-    <script>
-    (function(){var t=localStorage.getItem('heko-theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t?t==='dark':d)document.documentElement.setAttribute('data-theme','dark');})();
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
-        onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Heko{% endblock %}</title>
+
+  <!-- Anti-flash: read saved theme BEFORE render -->
+  <script>
+    (function(){
+      var t=localStorage.getItem('heko-theme');
+      if(t==='dark') document.documentElement.setAttribute('data-theme','dark');
+    })();
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Lora:ital,wght@0,400..700;1,400..700&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=DM+Mono:ital,wght@0,300..500;1,300..500&display=swap" rel="stylesheet">
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+
+  <!-- marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
-    <div class="app-layout">
-        <!-- Sidebar -->
-        {% if current_user %}
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>📚 Agente de Estudio</h2>
-                <button class="sidebar-toggle" id="sidebarClose" aria-label="Cerrar menú">✕</button>
-            </div>
-            <div class="sidebar-user">
-                👤 <strong>{{ current_user.display_name or current_user.username }}</strong>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">🏠 Inicio</a>
-                <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">📄 Subir Material</a>
-                <a href="{{ url_for('materials') }}" class="nav-link {% if request.endpoint == 'materials' %}active{% endif %}">📋 Mis Materiales</a>
-                <a href="{{ url_for('study_plan') }}" class="nav-link {% if request.endpoint == 'study_plan' %}active{% endif %}">📝 Plan de Estudio</a>
-                <a href="{{ url_for('quizzes') }}" class="nav-link {% if request.endpoint in ('quizzes', 'solve_quiz') %}active{% endif %}">❓ Quizzes</a>
-                <a href="{{ url_for('exam') }}" class="nav-link {% if request.endpoint == 'exam' %}active{% endif %}">📑 Modelo de Examen</a>
-                <a href="{{ url_for('tutor_page') }}" class="nav-link {% if request.endpoint == 'tutor_page' %}active{% endif %}">🎓 Tutor</a>
-                <a href="{{ url_for('progress') }}" class="nav-link {% if request.endpoint == 'progress' %}active{% endif %}">📊 Mi Progreso</a>
-                <a href="{{ url_for('subjects') }}" class="nav-link {% if request.endpoint == 'subjects' %}active{% endif %}">⚙️ Mis Materias</a>
-                {% if current_user.is_admin %}
-                <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">👑 Admin</a>
-                {% endif %}
-            </nav>
-            <div class="sidebar-footer">
-                <!-- Theme toggle -->
-                <div class="theme-toggle-wrap">
-                    <div class="theme-labels">
-                        <span class="theme-label-light">Light</span>
-                        <label class="theme-switch" title="Cambiar tema">
-                            <input type="checkbox" id="themeToggle" aria-label="Modo oscuro">
-                            <span class="theme-switch-track"></span>
-                        </label>
-                        <span class="theme-label-dark">Dark</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('logout') }}" class="nav-link logout-link">Cerrar sesión</a>
-            </div>
-        </aside>
-        {% endif %}
 
-        <!-- Main content -->
-        <main class="main-content {% if not current_user %}full-width{% endif %}">
-            <button class="sidebar-open" id="sidebarOpen" aria-label="Abrir menú">☰</button>
+{% if current_user.is_authenticated %}
+<!-- ────────────────────────────────── SIDEBAR ────────────── -->
+<aside class="sidebar" id="sidebar">
 
-            <!-- Flash messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="flash-container">
-                {% for category, message in messages %}
-                <div class="flash flash-{{ category }}">
-                    <span>{{ message }}</span>
-                    <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
+  <header class="sidebar-header">
+    <span class="sidebar-brand">heko.</span>
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Cerrar menú">&#10005;</button>
+  </header>
 
-            {% block content %}{% endblock %}
-        </main>
+  <nav class="sidebar-nav" aria-label="Navegación principal">
+
+    <!-- SECTION: Contenido -->
+    <div class="nav-section">
+      <div class="nav-section-label">Contenido</div>
+      <a href="{{ url_for('home') }}"
+         class="nav-link {% if request.endpoint=='home' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M2 6.5L8 2l6 4.5V13a1 1 0 01-1 1H9.5v-3.5h-3V14H3a1 1 0 01-1-1V6.5z"/>
+        </svg>
+        Inicio
+      </a>
+      <a href="{{ url_for('materials') }}"
+         class="nav-link {% if request.endpoint=='materials' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M2 2h7l3 3v9H2V2zm7 0v3h3"/>
+          <path fill-rule="evenodd" d="M4 7h6v1H4V7zm0 2h6v1H4V9zm0 2h4v1H4v-1z"/>
+        </svg>
+        Mis Materiales
+      </a>
+      <a href="{{ url_for('upload') }}"
+         class="nav-link {% if request.endpoint=='upload' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 2L5 5h2.25v4.5h1.5V5H11L8 2z"/>
+          <path d="M2.5 11.5v1a1 1 0 001 1h9a1 1 0 001-1v-1h-1.5v.5h-8v-.5H2.5z"/>
+        </svg>
+        Subir Material
+      </a>
     </div>
 
-    <script>
-    // Theme system  (persists to localStorage)
-    document.addEventListener('DOMContentLoaded', function () {
-        const toggle = document.getElementById('themeToggle');
-        if (!toggle) return;
+    <div class="nav-sep"></div>
 
-        // Sync checkbox with current theme
-        toggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+    <!-- SECTION: Practicar -->
+    <div class="nav-section">
+      <div class="nav-section-label">Practicar</div>
+      <a href="{{ url_for('quizzes') }}"
+         class="nav-link {% if request.endpoint in ('quizzes','create_quiz','solve_quiz') %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 3.5a1 1 0 11-2 0 1 1 0 012 0zm.5 2.5H6.5v1H7.25v3H6.5v1h3v-1H8.75V7H9.5V7h-.5V7z"/>
+        </svg>
+        Quizzes
+      </a>
+      <a href="{{ url_for('exam') }}"
+         class="nav-link {% if request.endpoint=='exam' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M2 2a1 1 0 011-1h10a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V2zm2 1v10h8V3H4zm1.5 2h5v1h-5V5zm0 2h5v1h-5V7zm0 2h3v1h-3V9z"/>
+        </svg>
+        Modelo de Examen
+      </a>
+      <a href="{{ url_for('tutor_page') }}"
+         class="nav-link {% if request.endpoint=='tutor_page' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M14 1H2a1 1 0 00-1 1v8a1 1 0 001 1h3l3 3 3-3h3a1 1 0 001-1V2a1 1 0 00-1-1zM5 6.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm5.5-1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+        </svg>
+        Tutor
+      </a>
+    </div>
 
-        toggle.addEventListener('change', function () {
-            const theme = this.checked ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('heko-theme', theme);
-        });
+    <div class="nav-sep"></div>
+
+    <!-- SECTION: Seguimiento -->
+    <div class="nav-section">
+      <div class="nav-section-label">Seguimiento</div>
+      <a href="{{ url_for('progress') }}"
+         class="nav-link {% if request.endpoint=='progress' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M2 12l3-4 3 2 3-6 3 4v3H2v-1z" opacity=".25"/>
+          <path fill-rule="evenodd" d="M14.5 13.5h-13v1h13v-1zm-1-1.2l-2.7-3.6-3 5-3.2-2.2L2 16h-.5V2.5h1v9.8l2.7-3.6 3 2.1 3.1-5.2 2.7 3.6 1.1-1.5.9.7-1.5 2z"/>
+        </svg>
+        Mi Progreso
+      </a>
+      <a href="{{ url_for('study_plan') }}"
+         class="nav-link {% if request.endpoint=='study_plan' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M1 2.5A1.5 1.5 0 012.5 1h11A1.5 1.5 0 0115 2.5v11a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 13.5v-11zm3 2a.5.5 0 000 1h8a.5.5 0 000-1H4zm0 3a.5.5 0 000 1h8a.5.5 0 000-1H4zm0 3a.5.5 0 000 1h5a.5.5 0 000-1H4z"/>
+        </svg>
+        Plan de Estudio
+      </a>
+    </div>
+
+    <div class="nav-sep"></div>
+
+    <!-- Standalone -->
+    <div class="nav-section">
+      <a href="{{ url_for('subjects') }}"
+         class="nav-link {% if request.endpoint=='subjects' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M14 1H2a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V2a1 1 0 00-1-1zM8 4a4 4 0 110 8A4 4 0 018 4zm0 1.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z"/>
+        </svg>
+        Mis Materias
+      </a>
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('admin_panel') }}"
+         class="nav-link {% if request.endpoint=='admin_panel' %}active{% endif %}">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8 1a1 1 0 00-.99.86L6.81 3.3a5.5 5.5 0 00-1.28.75l-1.38-.42a1 1 0 00-1.16.46l-1 1.73a1 1 0 00.22 1.26l1.1.91a5.6 5.6 0 000 1.5l-1.1.91a1 1 0 00-.22 1.26l1 1.73a1 1 0 001.16.46l1.38-.42a5.5 5.5 0 001.28.75l.2 1.44a1 1 0 00.99.86h2a1 1 0 00.99-.86l.2-1.44a5.5 5.5 0 001.28-.75l1.38.42a1 1 0 001.16-.46l1-1.73a1 1 0 00-.22-1.26l-1.1-.91a5.6 5.6 0 000-1.5l1.1-.91a1 1 0 00.22-1.26l-1-1.73a1 1 0 00-1.16-.46l-1.38.42a5.5 5.5 0 00-1.28-.75l-.2-1.44A1 1 0 0010 1H8zm0 5a2 2 0 110 4 2 2 0 010-4z"/>
+        </svg>
+        Admin
+      </a>
+      {% endif %}
+    </div>
+
+  </nav>
+
+  <!-- Footer: tema + usuario + salir -->
+  <footer class="sidebar-footer">
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle-wrap">
+      <span class="theme-label-light">☀</span>
+      <label class="theme-switch" title="Cambiar tema">
+        <input type="checkbox" id="themeToggle" aria-label="Modo oscuro">
+        <span class="theme-switch-track"></span>
+      </label>
+      <span class="theme-label-dark">☾</span>
+    </div>
+
+    <!-- User row -->
+    <div class="sidebar-user-row">
+      <div class="user-avatar" id="userAvatar" aria-hidden="true">
+        {{ current_user.display_name[:2]|upper if current_user.display_name else current_user.username[:2]|upper }}
+      </div>
+      <span class="user-name">{{ current_user.display_name or current_user.username }}</span>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="nav-link logout-link">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M9.5 1H3a1 1 0 00-1 1v12a1 1 0 001 1h6.5v-1.5H3.5V2.5h6V1zM11 4.5l3.5 3.5L11 11.5V9H6V7h5V4.5z"/>
+      </svg>
+      Cerrar sesión
+    </a>
+  </footer>
+
+</aside>
+
+<!-- Hamburger (mobile) -->
+<button class="sidebar-open" id="sidebarOpen" aria-label="Abrir menú">&#9776;</button>
+
+<!-- ─────────────────────── MAIN ─────────────────────────── -->
+<main class="main-content" id="mainContent">
+
+{% else %}
+<!-- Auth pages: no sidebar -->
+<main class="main-content full-width" id="mainContent">
+{% endif %}
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container" role="alert" aria-live="polite">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ 'error' if category=='danger' else category }}">
+      <span>{{ message }}</span>
+      <button class="flash-close" aria-label="Cerrar">&#10005;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+</main>
+
+<!-- ───────────────────── SCRIPTS ─────────────────────────── -->
+<script>
+(function(){
+  // ── Theme toggle ──────────────────────────────────────────
+  const root    = document.documentElement;
+  const toggle  = document.getElementById('themeToggle');
+  function applyTheme(t){
+    root.setAttribute('data-theme', t);
+    localStorage.setItem('heko-theme', t);
+    if(toggle) toggle.checked = (t === 'dark');
+  }
+  var saved = localStorage.getItem('heko-theme') || 'light';
+  applyTheme(saved);
+  if(toggle){
+    toggle.addEventListener('change', function(){
+      applyTheme(this.checked ? 'dark' : 'light');
     });
+  }
 
-    // Sidebar toggle
-    const sidebar = document.getElementById('sidebar');
-    const openBtn = document.getElementById('sidebarOpen');
-    const closeBtn = document.getElementById('sidebarClose');
-    if (openBtn) openBtn.addEventListener('click', () => sidebar.classList.add('open'));
-    if (closeBtn) closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
+  // ── Sidebar open/close ────────────────────────────────────
+  var sidebar    = document.getElementById('sidebar');
+  var btnOpen    = document.getElementById('sidebarOpen');
+  var btnClose   = document.getElementById('sidebarToggle');
+  function openSidebar(){
+    if(sidebar){ sidebar.classList.add('open'); }
+    if(btnOpen)  btnOpen.style.display = 'none';
+  }
+  function closeSidebar(){
+    if(sidebar){ sidebar.classList.remove('open'); }
+    if(btnOpen)  btnOpen.style.display = '';
+  }
+  if(btnOpen)  btnOpen.addEventListener('click', openSidebar);
+  if(btnClose) btnClose.addEventListener('click', closeSidebar);
 
-    // Auto-dismiss flash messages
-    document.querySelectorAll('.flash').forEach(el => {
-        setTimeout(() => el.style.opacity = '0', 5000);
-        setTimeout(() => el.remove(), 5500);
-    });
-
-    // Markdown renderer helper
-    function renderMarkdown(text) {
-        const html = marked.parse(text || '');
-        return html;
+  // close on backdrop click
+  document.addEventListener('click', function(e){
+    if(!sidebar) return;
+    if(!sidebar.contains(e.target) && e.target !== btnOpen){
+      if(sidebar.classList.contains('open')) closeSidebar();
     }
-    </script>
-    {% block scripts %}{% endblock %}
+  });
+
+  // ── Flash auto-dismiss ────────────────────────────────────
+  document.querySelectorAll('.flash').forEach(function(el){
+    var btn = el.querySelector('.flash-close');
+    if(btn) btn.addEventListener('click', function(){ el.remove(); });
+    setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){ el.remove(); }, 500); }, 6000);
+  });
+
+  // ── Markdown helper ───────────────────────────────────────
+  window.renderMarkdown = function(el){
+    if(!window.marked || !el) return;
+    var raw = el.getAttribute('data-md') || el.textContent;
+    try { el.innerHTML = marked.parse(raw); el.classList.add('markdown-content'); } catch(e){}
+  };
+  document.querySelectorAll('[data-md]').forEach(window.renderMarkdown);
+
+  // ── Tab system ────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var container = btn.closest('[data-tabs]') || btn.closest('.card, .glass-card, section, .tab-container') || btn.closest('[class]');
+      var target    = btn.getAttribute('data-tab');
+      var scope     = btn.closest('[data-tabs-scope]') || btn.parentElement.closest('div, section');
+      if(!scope) scope = document;
+      scope.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      scope.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+      btn.classList.add('active');
+      var panel = scope.querySelector('.tab-panel[data-tab="'+target+'"]');
+      if(panel) panel.classList.add('active');
+    });
+  });
+
+})();
+</script>
+
+{% block scripts %}{% endblock %}
 </body>
 </html>
