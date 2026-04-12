@@ -103,6 +103,54 @@
   --content-max-w: 1060px;
 }
 
+/* ---------------------------------------------------------
+   DARK MODE TOKENS  (applied when <html data-theme="dark">)
+   --------------------------------------------------------- */
+
+[data-theme="dark"] {
+  --color-bg:             #111418;
+  --color-surface:        #1c2127;
+  --color-surface-hover:  #252c34;
+  --color-surface-sunken: #161b22;
+  --color-sidebar-bg:     #0d1117;
+  --color-sidebar-hover:  rgba(255, 255, 255, 0.05);
+  --color-sidebar-active: rgba(94, 234, 212, 0.08);
+
+  --color-ink:            #e6edf3;
+  --color-ink-secondary:  #adbac7;
+  --color-ink-muted:      #768390;
+  --color-ink-faint:      #4d5562;
+
+  --color-accent:         #2dd4bf;
+  --color-accent-hover:   #14b8a6;
+  --color-accent-light:   rgba(45, 212, 191, 0.10);
+  --color-accent-on-dark: #5eead4;
+
+  --color-success:        #3fb950;
+  --color-success-bg:     rgba(63, 185, 80, 0.08);
+  --color-success-border: rgba(63, 185, 80, 0.30);
+  --color-danger:         #f85149;
+  --color-danger-bg:      rgba(248, 81, 73, 0.08);
+  --color-danger-border:  rgba(248, 81, 73, 0.30);
+  --color-warning:        #d29922;
+  --color-warning-bg:     rgba(210, 153, 34, 0.08);
+  --color-warning-border: rgba(210, 153, 34, 0.30);
+  --color-info:           #388bfd;
+  --color-info-bg:        rgba(56, 139, 253, 0.08);
+  --color-info-border:    rgba(56, 139, 253, 0.30);
+
+  --color-border:         #30363d;
+  --color-border-strong:  #484f58;
+  --color-border-sidebar: rgba(255, 255, 255, 0.06);
+
+  --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm:    0 1px 4px rgba(0, 0, 0, 0.30),
+                  0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-focus: 0 0 0 3px rgba(45, 212, 191, 0.22);
+}
+
 
 /* ---------------------------------------------------------
    2. REDUCED MOTION
@@ -1187,4 +1235,103 @@ select:focus {
 ::selection {
   background: rgba(15, 118, 110, 0.20);
   color: var(--color-ink);
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(45, 212, 191, 0.25);
+}
+
+
+/* ---------------------------------------------------------
+   29. THEME TOGGLE  (Light --- Dark slider in sidebar)
+   --------------------------------------------------------- */
+
+.theme-toggle-wrap {
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--color-border-sidebar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+/* Label row */
+.theme-labels {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.theme-label-light,
+.theme-label-dark {
+  transition: color var(--dur-fast) var(--ease-in-out);
+}
+
+/* Active label = teal; inactive = muted */
+.theme-label-light { color: var(--color-accent-on-dark); }
+.theme-label-dark  { color: var(--color-ink-on-dark);    }
+
+[data-theme="dark"] .theme-label-light { color: var(--color-ink-on-dark);    }
+[data-theme="dark"] .theme-label-dark  { color: var(--color-accent-on-dark); }
+
+/* The toggle track (checkbox hidden, label styled) */
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.theme-switch-track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-in-out),
+              border-color var(--dur-base) var(--ease-in-out);
+}
+
+.theme-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.30);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* Checked = dark mode activated */
+.theme-switch input:checked + .theme-switch-track {
+  background: var(--color-accent-on-dark);
+  border-color: var(--color-accent-on-dark);
+}
+
+.theme-switch input:checked + .theme-switch-track::after {
+  transform: translateX(18px);
+  background: #111418;
+}
+
+.theme-switch input:focus-visible + .theme-switch-track {
+  outline: 2px solid var(--color-accent-on-dark);
+  outline-offset: 2px;
 }
