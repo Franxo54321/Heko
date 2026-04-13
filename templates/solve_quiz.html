@@ -2,39 +2,142 @@
 {% block title %}Resolver Quiz — Agente de Estudio{% endblock %}
 
 {% block content %}
-<h1 class="page-title">{{ quiz_data.titulo or 'Quiz' }}</h1>
+<h1 class="page-title">Quizzes</h1>
+<p class="text-muted" style="margin-bottom:var(--sp-5)">Evaluá tu comprensión del material</p>
 
-<form method="POST" class="section">
+<!-- Progress bar -->
+<div class="quiz-progress-bar">
+  <div class="quiz-progress-info">
+    <span id="progressLabel">Pregunta 1 de {{ preguntas|length }}</span>
+    {% if quiz_data.materia or quiz_data.subject %}
+    <span class="badge badge-subject">{{ quiz_data.materia or quiz_data.subject or '' }}{% if quiz_data.unidad or quiz_data.unit %} · {{ quiz_data.unidad or quiz_data.unit }}{% endif %}</span>
+    {% endif %}
+  </div>
+  <div class="quiz-dots" id="quizDots">
     {% for p in preguntas %}
-    <div class="glass-card question-card">
-        <div class="question-header">
-            <strong>Pregunta {{ p.id }}</strong>
-            <span class="badge">{{ p.dificultad|default('media') }}</span>
-        </div>
-        <div class="question-body markdown-content">{{ p.enunciado }}</div>
-
-        {% if p.tipo == 'opcion_multiple' %}
-            {% for opt in p.opciones %}
-            <label class="radio-option">
-                <input type="radio" name="q_{{ p.id }}" value="{{ opt[0] }}" required>
-                <span>{{ opt }}</span>
-            </label>
-            {% endfor %}
-        {% elif p.tipo == 'verdadero_falso' %}
-            <label class="radio-option">
-                <input type="radio" name="q_{{ p.id }}" value="Verdadero" required>
-                <span>Verdadero</span>
-            </label>
-            <label class="radio-option">
-                <input type="radio" name="q_{{ p.id }}" value="Falso" required>
-                <span>Falso</span>
-            </label>
-        {% elif p.tipo == 'desarrollo' %}
-            <textarea name="q_{{ p.id }}" rows="4" class="text-area" placeholder="Tu respuesta..."></textarea>
-        {% endif %}
-    </div>
+    <span class="quiz-dot {% if loop.first %}active{% endif %}" data-idx="{{ loop.index0 }}"></span>
     {% endfor %}
+  </div>
+</div>
 
-    <button type="submit" class="btn btn-primary btn-lg">✅ Enviar respuestas</button>
+<form method="POST" id="quizForm">
+
+  {% for p in preguntas %}
+  <div class="quiz-slide glass-card" id="slide-{{ loop.index0 }}" style="{% if not loop.first %}display:none{% endif %}">
+
+    <div class="quiz-question-card">
+      <div class="quiz-question-text">{{ p.enunciado }}</div>
+
+      {% if p.tipo == 'opcion_multiple' %}
+        {% set letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] %}
+        {% for opt in p.opciones %}
+        <label class="quiz-option" data-question="{{ p.id }}">
+          <input type="radio" name="q_{{ p.id }}" value="{{ opt[0] if opt|length > 1 and opt[1] == ')' else opt }}" required>
+          <span class="quiz-option-letter">{{ letters[loop.index0] if loop.index0 < letters|length else loop.index }}</span>
+          <span class="quiz-option-text">{{ opt[2:]|trim if opt|length > 1 and opt[1] == ')' else opt }}</span>
+        </label>
+        {% endfor %}
+      {% elif p.tipo == 'verdadero_falso' %}
+        <label class="quiz-option" data-question="{{ p.id }}">
+          <input type="radio" name="q_{{ p.id }}" value="Verdadero" required>
+          <span class="quiz-option-letter">V</span>
+          <span class="quiz-option-text">Verdadero</span>
+        </label>
+        <label class="quiz-option" data-question="{{ p.id }}">
+          <input type="radio" name="q_{{ p.id }}" value="Falso" required>
+          <span class="quiz-option-letter">F</span>
+          <span class="quiz-option-text">Falso</span>
+        </label>
+      {% elif p.tipo == 'desarrollo' %}
+        <textarea name="q_{{ p.id }}" rows="4" class="text-area" placeholder="Tu respuesta..."></textarea>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+
+  <!-- Navigation -->
+  <div class="quiz-nav">
+    <button type="button" class="btn" id="prevBtn" onclick="changeSlide(-1)" disabled>Anterior</button>
+    <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeSlide(1)">Siguiente →</button>
+    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" style="display:none">✅ Enviar respuestas</button>
+  </div>
+
 </form>
+
+<div class="scroll-indicator">↓</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  var total   = {{ preguntas|length }};
+  var current = 0;
+
+  window.changeSlide = function(dir) {
+    var cur = document.getElementById('slide-' + current);
+    if (cur) cur.style.display = 'none';
+
+    current += dir;
+    if (current < 0) current = 0;
+    if (current >= total) current = total - 1;
+
+    var next = document.getElementById('slide-' + current);
+    if (next) next.style.display = '';
+
+    updateUI();
+  };
+
+  function updateUI() {
+    document.getElementById('progressLabel').textContent = 'Pregunta ' + (current + 1) + ' de ' + total;
+
+    var prev = document.getElementById('prevBtn');
+    var next = document.getElementById('nextBtn');
+    var sub  = document.getElementById('submitBtn');
+
+    prev.disabled = (current === 0);
+
+    if (current === total - 1) {
+      next.style.display = 'none';
+      sub.style.display  = '';
+    } else {
+      next.style.display = '';
+      sub.style.display  = 'none';
+    }
+
+    // Dots
+    document.querySelectorAll('.quiz-dot').forEach(function(d, i) {
+      d.classList.toggle('active', i === current);
+      // Answered?
+      var slide = document.getElementById('slide-' + i);
+      if (slide) {
+        var answered = slide.querySelector('input[type="radio"]:checked') || (slide.querySelector('textarea') && slide.querySelector('textarea').value.trim());
+        d.classList.toggle('answered', !!answered);
+      }
+    });
+  }
+
+  // Click on dots to navigate
+  document.querySelectorAll('.quiz-dot').forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var idx = parseInt(this.getAttribute('data-idx'));
+      var cur = document.getElementById('slide-' + current);
+      if (cur) cur.style.display = 'none';
+      current = idx;
+      var next = document.getElementById('slide-' + current);
+      if (next) next.style.display = '';
+      updateUI();
+    });
+  });
+
+  // Update dots when options are selected
+  document.querySelectorAll('.quiz-option input[type="radio"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      setTimeout(updateUI, 50);
+    });
+  });
+
+  updateUI();
+})();
+</script>
 {% endblock %}
