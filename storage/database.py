@@ -399,6 +399,12 @@ def update_material_unit(material_id: int, unit: str) -> None:
         cur.execute("UPDATE materials SET unit = %s WHERE id = %s", (unit, material_id))
 
 
+def update_material_filename(material_id: int, new_name: str) -> None:
+    with _db() as conn:
+        cur = _cur(conn)
+        cur.execute("UPDATE materials SET filename = %s WHERE id = %s", (new_name, material_id))
+
+
 def get_user_subjects_from_materials(user_id: int) -> list[str]:
     """Devuelve materias únicas usadas en materiales del usuario."""
     with _db() as conn:

@@ -377,6 +377,18 @@ def move_material(material_id):
     return redirect(url_for("materials"))
 
 
+@app.route("/materials/rename/<int:material_id>", methods=["POST"])
+@login_required
+def rename_material(material_id):
+    new_name = request.form.get("new_name", "").strip()
+    if new_name:
+        database.update_material_filename(material_id, new_name)
+        flash("Nombre actualizado.", "success")
+    else:
+        flash("El nombre no puede estar vacío.", "error")
+    return redirect(url_for("materials"))
+
+
 # ---------------------------------------------------------------------------
 # Plan de Estudio
 # ---------------------------------------------------------------------------

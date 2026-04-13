@@ -4,81 +4,315 @@
 {% block content %}
 <h1 class="page-title">📋 Mis Materiales</h1>
 
-<div class="section glass-card">
-    <h2>Filtros</h2>
-    <form method="GET" class="form-row">
-        <div class="form-group flex-1">
-            <label>Materia</label>
-            <select name="subject" onchange="this.form.submit()">
-                <option value="">Todas</option>
-                {% for s in subjects %}
-                <option value="{{ s }}" {% if filter_subj == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group flex-1">
-            <label>Unidad</label>
-            <select name="unit" onchange="this.form.submit()">
-                <option value="">Todas</option>
-                {% for u in units %}
-                <option value="{{ u }}" {% if filter_unit == u %}selected{% endif %}>{{ u }}</option>
-                {% endfor %}
-            </select>
-        </div>
-    </form>
-    <p class="text-muted">Mostrando {{ materials|length }} de {{ all_count }} materiales</p>
+<!-- ── Filters bar ───────────────────────────────────────── -->
+<form method="GET" class="filters-bar">
+  <div class="form-group flex-1">
+    <label>Materia</label>
+    <select name="subject" onchange="this.form.submit()">
+      <option value="">Todas las materias</option>
+      {% for s in subjects %}
+      <option value="{{ s }}" {% if filter_subj == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group flex-1">
+    <label>Unidad</label>
+    <select name="unit" onchange="this.form.submit()">
+      <option value="">Todas las unidades</option>
+      {% for u in units %}
+      <option value="{{ u }}" {% if filter_unit == u %}selected{% endif %}>{{ u }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group" style="align-self:flex-end">
+    <a href="{{ url_for('materials') }}" class="btn btn-ghost btn-sm">Limpiar</a>
+  </div>
+</form>
+
+<p class="text-muted" style="margin-bottom:var(--sp-4)">Mostrando {{ materials|length }} de {{ all_count }} materiales</p>
+
+<!-- ── Tabs ──────────────────────────────────────────────── -->
+<div class="tabs" id="mainTabs">
+  <button class="tab-btn active" onclick="switchMainTab('por-unidad', this)">Por unidad</button>
+  <button class="tab-btn" onclick="switchMainTab('lista', this)">Lista completa</button>
+  <button class="tab-btn" onclick="switchMainTab('lectura', this)">Vista de lectura</button>
 </div>
 
-{% for unit_label, mats in units_map.items() %}
-<div class="section">
-    <h2>📁 {{ unit_label }}</h2>
-    {% for mat in mats %}
-    <details class="glass-card expandable">
-        <summary>
-            {{ '📄' if mat.file_type == 'pdf' else '🖼️' }}
-            {{ mat.filename }} — {{ mat.subject }} ({{ mat.created_at[:10] }})
-        </summary>
-        <div class="expandable-content">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="showMatTab(this, 'summary-{{ mat.id }}')">Resumen</button>
-                <button class="tab-btn" onclick="showMatTab(this, 'text-{{ mat.id }}')">Texto completo</button>
+
+<!-- ═══════════════════ TAB 1 – Por unidad ════════════════ -->
+<div class="tab-panel active" id="panel-por-unidad">
+
+  {% if units_map %}
+    {% for unit_label, mats in units_map.items() %}
+    <details class="glass-card expandable" open>
+      <summary>
+        <span class="unit-header">
+          <span class="unit-header-title">📁 {{ unit_label }}</span>
+          <span class="unit-header-count">{{ mats|length }} archivo{{ 's' if mats|length != 1 }}</span>
+          {% set subj = mats[0].subject if mats else '' %}
+          {% if subj %}<span class="badge badge-subject">{{ subj }}</span>{% endif %}
+        </span>
+      </summary>
+
+      <div class="expandable-content" style="padding-top:0">
+        {% for mat in mats %}
+        <div class="material-row">
+          <span class="material-row-icon">
+            {% if mat.file_type == 'pdf' %}📄{% elif mat.file_type == 'docx' %}📝{% elif mat.file_type == 'txt' %}🗒️{% else %}📎{% endif %}
+          </span>
+          <div class="material-row-info">
+            <div class="material-row-name">{{ mat.filename }}</div>
+            <div class="material-row-meta">
+              Resumen: {{ mat.summary[:80] }}{% if mat.summary|length > 80 %}…{% endif %}
             </div>
-            <div class="tab-panel active" id="summary-{{ mat.id }}">
-                <div class="markdown-content">{{ mat.summary }}</div>
-            </div>
-            <div class="tab-panel" id="text-{{ mat.id }}">
-                <textarea class="text-area" readonly rows="10">{{ mat.raw_text }}</textarea>
-            </div>
-            <div class="form-row" style="margin-top:12px">
-                <form method="POST" action="{{ url_for('delete_material', material_id=mat.id) }}">
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este material?')">🗑️ Eliminar</button>
-                </form>
-                <form method="POST" action="{{ url_for('move_material', material_id=mat.id) }}" class="form-row">
-                    <input type="text" name="new_unit" value="{{ mat.unit or '' }}" placeholder="Nueva unidad" class="input-sm">
-                    <button type="submit" class="btn btn-secondary btn-sm">📂 Mover</button>
-                </form>
-            </div>
+          </div>
+          <div class="material-row-actions">
+            <button class="btn btn-secondary btn-sm"
+                    onclick="openReading('{{ mat.id }}', this)"
+                    data-raw="{{ mat.raw_text|e }}"
+                    data-summary="{{ mat.summary|e }}"
+                    data-filename="{{ mat.filename|e }}">
+              Leer
+            </button>
+            <a href="{{ url_for('create_quiz') }}?material_id={{ mat.id }}" class="btn btn-sm">Quiz</a>
+          </div>
         </div>
+        {% endfor %}
+      </div>
     </details>
     {% endfor %}
-</div>
-{% endfor %}
+  {% else %}
+    <div class="glass-card" style="text-align:center;padding:var(--sp-9)">
+      <p style="color:var(--color-ink-muted);margin-bottom:var(--sp-4)">No hay materiales subidos aún.</p>
+      <a href="{{ url_for('upload') }}" class="btn btn-primary">Subir primer material</a>
+    </div>
+  {% endif %}
 
-{% if not materials %}
-<div class="section glass-card">
-    <p>No hay materiales cargados. Ve a <a href="{{ url_for('upload') }}">Subir Material</a> para comenzar.</p>
-</div>
-{% endif %}
+</div><!-- /por-unidad -->
+
+
+<!-- ═══════════════════ TAB 2 – Lista completa ════════════ -->
+<div class="tab-panel" id="panel-lista">
+
+  {% if materials %}
+    {% for mat in materials %}
+    <div class="material-row">
+      <span class="material-row-icon">
+        {% if mat.file_type == 'pdf' %}📄{% elif mat.file_type == 'docx' %}📝{% elif mat.file_type == 'txt' %}🗒️{% else %}📎{% endif %}
+      </span>
+      <div class="material-row-info">
+        <div class="material-row-name">{{ mat.filename }}</div>
+        <div class="material-row-meta">
+          <span class="badge badge-subject" style="margin-right:4px">{{ mat.subject }}</span>
+          <span class="badge badge-unit" style="margin-right:4px">{{ mat.unit or 'Sin unidad' }}</span>
+          {{ mat.created_at[:10] if mat.created_at else '' }}
+        </div>
+      </div>
+      <div class="material-row-actions">
+        <!-- Rename -->
+        <form method="POST" action="{{ url_for('rename_material', material_id=mat.id) }}" class="rename-form">
+          <input type="text" name="new_name" value="{{ mat.filename }}" title="Renombrar">
+          <button type="submit" class="btn btn-ghost btn-sm" title="Guardar nombre">✎</button>
+        </form>
+        <!-- Move -->
+        <form method="POST" action="{{ url_for('move_material', material_id=mat.id) }}" class="rename-form">
+          <select name="new_unit" class="input-sm" style="max-width:120px" title="Mover a unidad">
+            {% for u in units %}
+            <option value="{{ u }}" {% if u == mat.unit %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-ghost btn-sm" title="Mover">📂</button>
+        </form>
+        <button class="btn btn-secondary btn-sm"
+                onclick="openReading('{{ mat.id }}', this)"
+                data-raw="{{ mat.raw_text|e }}"
+                data-summary="{{ mat.summary|e }}"
+                data-filename="{{ mat.filename|e }}">
+          Leer
+        </button>
+        <a href="{{ url_for('create_quiz') }}?material_id={{ mat.id }}" class="btn btn-sm">Quiz</a>
+        <form method="POST" action="{{ url_for('delete_material', material_id=mat.id) }}"
+              onsubmit="return confirm('¿Eliminar «{{ mat.filename|e }}»?')" style="display:inline">
+          <button type="submit" class="btn btn-danger btn-sm" title="Eliminar">✕</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="glass-card" style="text-align:center;padding:var(--sp-9)">
+      <p style="color:var(--color-ink-muted)">No hay materiales.</p>
+    </div>
+  {% endif %}
+
+</div><!-- /lista -->
+
+
+<!-- ═══════════════════ TAB 3 – Vista de lectura ══════════ -->
+<div class="tab-panel" id="panel-lectura">
+
+  {% if materials %}
+  <div class="reading-layout">
+
+    <!-- Left: File index -->
+    <nav class="reading-index">
+      <div class="reading-index-title">Índice</div>
+      {% for mat in materials %}
+      <button class="reading-index-item {% if loop.first %}active{% endif %}"
+              data-material-id="{{ mat.id }}"
+              onclick="openReadingFromIndex('{{ mat.id }}', this)"
+              data-raw="{{ mat.raw_text|e }}"
+              data-summary="{{ mat.summary|e }}"
+              data-filename="{{ mat.filename|e }}">
+        {{ mat.filename }}
+      </button>
+      {% endfor %}
+    </nav>
+
+    <!-- Right: Reading pane -->
+    <div class="reading-pane">
+      <div id="readingEmpty" style="color:var(--color-ink-muted);padding:var(--sp-7) 0">
+        Selecciona un material del índice para leerlo.
+      </div>
+      <div id="readingContent" style="display:none">
+        <h2 id="readingTitle" style="font-family:var(--font-display);font-size:20px;font-weight:700;margin-bottom:var(--sp-3);color:var(--color-ink);letter-spacing:-0.01em"></h2>
+
+        <div class="tabs" id="readingTabs">
+          <button class="tab-btn active" onclick="showReadingTab('resumen', this)">Resumen</button>
+          <button class="tab-btn" onclick="showReadingTab('texto', this)">Texto completo</button>
+          <button class="tab-btn" onclick="showReadingTab('conceptos', this)">Conceptos clave</button>
+        </div>
+
+        <div class="reading-body" id="readingTabResumen"></div>
+        <div class="reading-body" id="readingTabTexto" style="display:none"></div>
+        <div class="reading-body" id="readingTabConceptos" style="display:none"></div>
+
+        <div class="reading-actions">
+          <a id="readingQuizBtn" href="#" class="btn btn-primary">Generar quiz de este material</a>
+          <a href="{{ url_for('tutor_page') }}" class="btn btn-secondary">Preguntar al tutor</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="scroll-indicator">↓</div>
+
+  {% else %}
+    <div class="glass-card" style="text-align:center;padding:var(--sp-9)">
+      <p style="color:var(--color-ink-muted)">No hay materiales para leer.</p>
+    </div>
+  {% endif %}
+
+</div><!-- /lectura -->
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-function showMatTab(btn, panelId) {
-    const parent = btn.closest('.expandable-content');
-    parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    parent.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+(function(){
+
+  /* ── Main tab switching ──────────────────────────────── */
+  window.switchMainTab = function(tabId, btn) {
+    document.querySelectorAll('#mainTabs .tab-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
-    document.getElementById(panelId).classList.add('active');
-}
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    var panel = document.getElementById('panel-' + tabId);
+    if (panel) panel.classList.add('active');
+  };
+
+  /* ── Reading tab switching ───────────────────────────── */
+  window.showReadingTab = function(tab, btn) {
+    document.querySelectorAll('#readingTabs .tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('readingTabResumen').style.display   = tab === 'resumen'   ? '' : 'none';
+    document.getElementById('readingTabTexto').style.display     = tab === 'texto'     ? '' : 'none';
+    document.getElementById('readingTabConceptos').style.display = tab === 'conceptos' ? '' : 'none';
+  };
+
+  /* ── Open reading from any Leer button ───────────────── */
+  window.openReading = function(id, btn) {
+    var raw      = btn.getAttribute('data-raw')      || '';
+    var summary  = btn.getAttribute('data-summary')  || '';
+    var filename = btn.getAttribute('data-filename') || '';
+
+    // Switch to Vista de lectura tab
+    var tabs = document.querySelectorAll('#mainTabs .tab-btn');
+    tabs.forEach(function(b){ b.classList.remove('active'); });
+    tabs[2].classList.add('active');  // lectura tab
+    document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('panel-lectura').classList.add('active');
+
+    populateReading(id, raw, summary, filename);
+  };
+
+  /* ── Open from left index ────────────────────────────── */
+  window.openReadingFromIndex = function(id, btn) {
+    var raw      = btn.getAttribute('data-raw')      || '';
+    var summary  = btn.getAttribute('data-summary')  || '';
+    var filename = btn.getAttribute('data-filename') || '';
+
+    document.querySelectorAll('.reading-index-item').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+
+    populateReading(id, raw, summary, filename);
+  };
+
+  /* ── Populate reading pane ───────────────────────────── */
+  function populateReading(id, raw, summary, filename) {
+    document.getElementById('readingEmpty').style.display   = 'none';
+    document.getElementById('readingContent').style.display = 'block';
+    document.getElementById('readingTitle').textContent     = filename;
+
+    var resumenEl   = document.getElementById('readingTabResumen');
+    var textoEl     = document.getElementById('readingTabTexto');
+    var conceptosEl = document.getElementById('readingTabConceptos');
+
+    renderTo(resumenEl, summary);
+    renderTo(textoEl, raw);
+    renderConceptos(conceptosEl, summary, raw);
+
+    // Reset to resumen tab
+    showReadingTab('resumen', document.querySelector('#readingTabs .tab-btn'));
+
+    // Update quiz link
+    var qBtn = document.getElementById('readingQuizBtn');
+    if (qBtn) qBtn.href = "{{ url_for('create_quiz') }}?material_id=" + id;
+
+    // Update index highlights
+    document.querySelectorAll('.reading-index-item').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-material-id') === String(id));
+    });
+  }
+
+  function renderTo(el, text) {
+    if (!text) { el.innerHTML = '<p class="text-muted">No disponible.</p>'; return; }
+    if (window.marked) {
+      try { el.innerHTML = marked.parse(text); return; } catch(e) {}
+    }
+    el.textContent = text;
+  }
+
+  /* Extract bold terms as concept highlights */
+  function renderConceptos(el, summary, raw) {
+    var all = (summary || '') + ' ' + (raw || '');
+    var boldRe = /\*\*(.+?)\*\*/g;
+    var matches = [];
+    var m;
+    while ((m = boldRe.exec(all)) !== null) {
+      if (matches.indexOf(m[1]) === -1 && m[1].length > 2) matches.push(m[1]);
+    }
+    if (matches.length === 0) {
+      el.innerHTML = '<p class="text-muted">No se detectaron conceptos clave resaltados.</p>';
+      return;
+    }
+    var html = '<ul>';
+    matches.forEach(function(c) {
+      html += '<li><strong>' + c.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</strong></li>';
+    });
+    html += '</ul>';
+    el.innerHTML = html;
+  }
+
+})();
 </script>
 {% endblock %}
