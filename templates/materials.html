@@ -67,6 +67,8 @@
             </div>
           </div>
           <div class="material-row-actions">
+            <button class="btn btn-ghost btn-sm" title="Renombrar"
+                    onclick="openRenameModal({{ mat.id }}, '{{ mat.filename|e }}')">✎</button>
             <button class="btn btn-secondary btn-sm"
                     onclick="openReading('{{ mat.id }}', this)"
                     data-raw="{{ mat.raw_text|e }}"
@@ -109,11 +111,9 @@
         </div>
       </div>
       <div class="material-row-actions">
-        <!-- Rename -->
-        <form method="POST" action="{{ url_for('rename_material', material_id=mat.id) }}" class="rename-form">
-          <input type="text" name="new_name" value="{{ mat.filename }}" title="Renombrar">
-          <button type="submit" class="btn btn-ghost btn-sm" title="Guardar nombre">✎</button>
-        </form>
+        <!-- Rename button -->
+        <button class="btn btn-ghost btn-sm" title="Renombrar"
+                onclick="openRenameModal({{ mat.id }}, '{{ mat.filename|e }}')">✎</button>
         <!-- Move -->
         <form method="POST" action="{{ url_for('move_material', material_id=mat.id) }}" class="rename-form">
           <select name="new_unit" class="input-sm" style="max-width:120px" title="Mover a unidad">
@@ -205,13 +205,49 @@
 
 </div><!-- /lectura -->
 
+<!-- ── Rename Modal ───────────────────────────────────────── -->
+<div id="renameModal" class="modal-backdrop" style="display:none" onclick="closeRenameModal(event)">
+  <div class="modal-box">
+    <h3 class="modal-title">Renombrar archivo</h3>
+    <p class="text-muted" style="margin-bottom:var(--sp-4);font-size:13px">Ingresa el nuevo nombre para el archivo.</p>
+    <form method="POST" id="renameForm" action="">
+      <div class="form-group">
+        <label for="renameInput">Nombre</label>
+        <input type="text" id="renameInput" name="new_name" class="form-control" autocomplete="off" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeRenameModal()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function(){
 
-  /* ── Main tab switching ──────────────────────────────── */
+  /* ── Rename Modal ────────────────────────────────────── */
+  window.openRenameModal = function(id, currentName) {
+    var modal  = document.getElementById('renameModal');
+    var form   = document.getElementById('renameForm');
+    var input  = document.getElementById('renameInput');
+    form.action = '/materials/rename/' + id;
+    input.value = currentName;
+    modal.style.display = 'flex';
+    setTimeout(function(){ input.focus(); input.select(); }, 60);
+  };
+
+  window.closeRenameModal = function(evt) {
+    if (evt && evt.target !== document.getElementById('renameModal')) return;
+    document.getElementById('renameModal').style.display = 'none';
+  };
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.getElementById('renameModal').style.display = 'none';
+  });
   window.switchMainTab = function(tabId, btn) {
     document.querySelectorAll('#mainTabs .tab-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
