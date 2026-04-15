@@ -46,10 +46,36 @@
     <h2>Planes guardados</h2>
     {% if plans %}
         {% for plan in plans %}
-        <details class="glass-card expandable">
-            <summary>📝 {{ plan.title }} ({{ plan.created_at[:10] }})</summary>
-            <div class="expandable-content markdown-content plan-checklist" data-plan-id="{{ plan.id }}">{{ plan.plan_markdown }}</div>
-        </details>
+        <div class="glass-card plan-card" style="margin-bottom:var(--sp-5)">
+            <!-- Header -->
+            <div class="plan-card-header" onclick="togglePlanCard(this)">
+                <div class="plan-card-header-left">
+                    <span class="plan-card-icon">📝</span>
+                    <div>
+                        <div class="plan-card-title">{{ plan.title }}</div>
+                        <div class="plan-card-meta">{{ plan.created_at[:10] }} · {{ plan.days }} días · {{ plan.hours_per_day }}h/día</div>
+                    </div>
+                </div>
+                <div class="plan-card-header-right">
+                    <div class="plan-overall-progress" id="overall-{{ plan.id }}">
+                        <div class="plan-overall-bar"><div class="plan-overall-fill" style="width:0%"></div></div>
+                        <span class="plan-overall-text">0%</span>
+                    </div>
+                    <button class="plan-toggle-btn" aria-label="Expandir">▾</button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="plan-card-body" style="display:none">
+                <!-- Day tabs (built by JS) -->
+                <div class="plan-day-tabs" id="tabs-{{ plan.id }}"></div>
+                <!-- Day content (built by JS) -->
+                <div class="plan-day-content"
+                     id="content-{{ plan.id }}"
+                     data-plan-id="{{ plan.id }}"
+                     data-markdown="{{ plan.plan_markdown | e }}"></div>
+            </div>
+        </div>
         {% endfor %}
     {% else %}
         <p class="text-muted">No hay planes guardados aún.</p>
@@ -68,52 +94,192 @@ if (planForm) {
     });
 }
 
-// ── Plan checkboxes ──────────────────────────────────
-(function() {
-    document.querySelectorAll('.plan-checklist').forEach(function(container) {
-        var planId = container.getAttribute('data-plan-id');
-        var storageKey = 'plan_checks_' + planId;
-        var checked = {};
-        try { checked = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch(e) {}
+// ── Toggle plan card open/close ──────────────────────
+window.togglePlanCard = function(header) {
+    var body   = header.nextElementSibling;
+    var btn    = header.querySelector('.plan-toggle-btn');
+    var open   = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    btn.textContent = open ? '▾' : '▴';
+    if (!open && !header.dataset.built) {
+        header.dataset.built = '1';
+        var content = body.querySelector('.plan-day-content');
+        if (content) buildPlanCards(content);
+    }
+};
 
-        // Convert list items to checkboxes
-        var items = container.querySelectorAll('li');
-        items.forEach(function(li, idx) {
-            var key = 'item_' + idx;
-            var cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.className = 'plan-checkbox';
-            cb.checked = !!checked[key];
-            if (cb.checked) li.classList.add('plan-item-done');
+// ── Build day-card view from markdown ────────────────
+function buildPlanCards(container) {
+    var planId  = container.getAttribute('data-plan-id');
+    var rawMd   = container.getAttribute('data-markdown') || '';
+    var storageKey = 'plan_checks_' + planId;
+    var checked = {};
+    try { checked = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch(e) {}
 
-            cb.addEventListener('change', function() {
-                checked[key] = cb.checked;
-                li.classList.toggle('plan-item-done', cb.checked);
-                localStorage.setItem(storageKey, JSON.stringify(checked));
-                updateProgress(container, planId);
-            });
-            li.insertBefore(cb, li.firstChild);
-        });
+    // Parse markdown → HTML
+    var html = (window.marked ? marked.parse(rawMd) : rawMd);
+    var temp = document.createElement('div');
+    temp.innerHTML = html;
 
-        if (items.length > 0) updateProgress(container, planId);
+    // Split content by H2 (days) or H3 if no H2 exists
+    var headingTag = temp.querySelector('h2') ? 'H2' : 'H3';
+    var days  = [];
+    var intro = [];
+    var cur   = null;
+
+    Array.from(temp.childNodes).forEach(function(node) {
+        if (node.nodeName === headingTag) {
+            cur = { title: node.textContent.trim(), nodes: [] };
+            days.push(cur);
+        } else if (cur) {
+            cur.nodes.push(node.cloneNode(true));
+        } else {
+            intro.push(node.cloneNode(true));
+        }
     });
 
-    function updateProgress(container, planId) {
-        var items = container.querySelectorAll('li');
-        var total = items.length;
-        var done = container.querySelectorAll('.plan-item-done').length;
-        var pct = total > 0 ? Math.round(done / total * 100) : 0;
+    var tabsEl = document.getElementById('tabs-' + planId);
 
-        var bar = container.parentElement.querySelector('.plan-progress');
-        if (!bar) {
-            bar = document.createElement('div');
-            bar.className = 'plan-progress';
-            bar.innerHTML = '<div class="plan-progress-bar"></div><span class="plan-progress-text"></span>';
-            container.parentElement.insertBefore(bar, container);
-        }
-        bar.querySelector('.plan-progress-bar').style.width = pct + '%';
-        bar.querySelector('.plan-progress-text').textContent = done + '/' + total + ' completados (' + pct + '%)';
+    if (days.length === 0) {
+        // No day structure — render flat with checkboxes
+        container.innerHTML = '<div class="markdown-content plan-flat">' + html + '</div>';
+        addCheckboxesToFlat(container.querySelector('.plan-flat'), planId, checked, storageKey);
+        updateOverall(planId);
+        return;
     }
-})();
+
+    // Build tab buttons
+    tabsEl.innerHTML = '';
+    days.forEach(function(day, i) {
+        var btn = document.createElement('button');
+        btn.className = 'plan-day-tab' + (i === 0 ? ' active' : '');
+        btn.setAttribute('data-day-idx', i);
+        // Build short label: "Día 1", "Día 2" etc
+        var label = day.title.match(/[Dd][íi]a\s*\d+/);
+        btn.textContent = label ? label[0] : 'Día ' + (i + 1);
+        btn.title = day.title;
+        btn.onclick = (function(idx){ return function() { switchDay(planId, idx); }; })(i);
+        tabsEl.appendChild(btn);
+    });
+
+    // Build day cards
+    container.innerHTML = '';
+    days.forEach(function(day, i) {
+        var card = document.createElement('div');
+        card.className = 'plan-day-card' + (i === 0 ? ' active' : '');
+        card.setAttribute('data-day-idx', i);
+        card.setAttribute('data-plan-id', planId);
+
+        // Day title
+        var titleEl = document.createElement('div');
+        titleEl.className = 'plan-day-card-title';
+        titleEl.textContent = day.title;
+        card.appendChild(titleEl);
+
+        // Mini progress bar
+        var miniProg = document.createElement('div');
+        miniProg.className = 'plan-mini-progress';
+        miniProg.innerHTML = '<div class="plan-mini-bar"><div class="plan-mini-fill" style="width:0%"></div></div>' +
+                             '<span class="plan-mini-text"></span>';
+        card.appendChild(miniProg);
+
+        // Content
+        var contentDiv = document.createElement('div');
+        contentDiv.className = 'markdown-content plan-day-body';
+        day.nodes.forEach(function(n) { contentDiv.appendChild(n.cloneNode(true)); });
+        card.appendChild(contentDiv);
+
+        container.appendChild(card);
+    });
+
+    // Add checkboxes to all list items across all day cards
+    var allItems = container.querySelectorAll('li');
+    var globalIdx = 0;
+    allItems.forEach(function(li) {
+        var key = 'item_' + globalIdx;
+        var cb  = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'plan-checkbox';
+        cb.checked  = !!checked[key];
+        if (cb.checked) li.classList.add('plan-item-done');
+        cb.addEventListener('change', (function(k, pId, sKey){ return function() {
+            checked[k] = this.checked;
+            li.classList.toggle('plan-item-done', this.checked);
+            localStorage.setItem(sKey, JSON.stringify(checked));
+            updateDayProgress(li.closest('.plan-day-card'));
+            updateOverall(pId);
+        }; })(key, planId, storageKey));
+        li.insertBefore(cb, li.firstChild);
+        globalIdx++;
+    });
+
+    // Initial progress
+    container.querySelectorAll('.plan-day-card').forEach(function(c) { updateDayProgress(c); });
+    updateOverall(planId);
+}
+
+function addCheckboxesToFlat(container, planId, checked, storageKey) {
+    container.querySelectorAll('li').forEach(function(li, idx) {
+        var key = 'item_' + idx;
+        var cb  = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'plan-checkbox';
+        cb.checked = !!checked[key];
+        if (cb.checked) li.classList.add('plan-item-done');
+        cb.addEventListener('change', function() {
+            checked[key] = this.checked;
+            li.classList.toggle('plan-item-done', this.checked);
+            localStorage.setItem(storageKey, JSON.stringify(checked));
+            updateOverall(planId);
+        });
+        li.insertBefore(cb, li.firstChild);
+    });
+}
+
+function switchDay(planId, idx) {
+    var tabsEl   = document.getElementById('tabs-' + planId);
+    var container = document.getElementById('content-' + planId);
+    tabsEl.querySelectorAll('.plan-day-tab').forEach(function(b) { b.classList.remove('active'); });
+    container.querySelectorAll('.plan-day-card').forEach(function(c) { c.classList.remove('active'); });
+    var btn  = tabsEl.querySelector('[data-day-idx="' + idx + '"]');
+    var card = container.querySelector('[data-day-idx="' + idx + '"]');
+    if (btn)  btn.classList.add('active');
+    if (card) card.classList.add('active');
+}
+
+function updateDayProgress(card) {
+    if (!card) return;
+    var items = card.querySelectorAll('li');
+    var total = items.length;
+    var done  = card.querySelectorAll('.plan-item-done').length;
+    var pct   = total > 0 ? Math.round(done / total * 100) : 0;
+    var fill  = card.querySelector('.plan-mini-fill');
+    var text  = card.querySelector('.plan-mini-text');
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = done + '/' + total + ' tareas';
+
+    // Color tab if fully done
+    var planId = card.getAttribute('data-plan-id');
+    var idx    = card.getAttribute('data-day-idx');
+    var tab    = document.querySelector('#tabs-' + planId + ' [data-day-idx="' + idx + '"]');
+    if (tab) {
+        tab.classList.toggle('plan-day-done', pct === 100);
+        tab.classList.toggle('plan-day-partial', pct > 0 && pct < 100);
+    }
+}
+
+function updateOverall(planId) {
+    var container = document.getElementById('content-' + planId);
+    if (!container) return;
+    var total = container.querySelectorAll('li').length;
+    var done  = container.querySelectorAll('.plan-item-done').length;
+    var pct   = total > 0 ? Math.round(done / total * 100) : 0;
+    var wrap  = document.getElementById('overall-' + planId);
+    if (!wrap) return;
+    wrap.querySelector('.plan-overall-fill').style.width = pct + '%';
+    wrap.querySelector('.plan-overall-text').textContent = pct + '%';
+    // Color fill green when done
+    wrap.querySelector('.plan-overall-fill').style.background = pct === 100 ? '#16a34a' : '';
+}
 </script>
 {% endblock %}

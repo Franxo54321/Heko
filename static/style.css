@@ -1710,28 +1710,240 @@ select:focus {
   text-decoration: line-through;
 }
 
-.plan-progress {
+/* ── Plan Card (new interactive layout) ─────────────── */
+.plan-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.plan-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-5) var(--sp-6);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--dur-fast) var(--ease-in-out);
+}
+.plan-card-header:hover { background: var(--color-hover); }
+
+.plan-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.plan-card-icon { font-size: 22px; }
+
+.plan-card-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-ink);
+}
+
+.plan-card-meta {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin-top: 2px;
+}
+
+.plan-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.plan-overall-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.plan-overall-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.plan-overall-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+  transition: width var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+
+.plan-overall-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  min-width: 30px;
+}
+
+.plan-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--color-ink-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.plan-card-body {
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Day Tabs ────────────────────────────────────────── */
+.plan-day-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  overflow-x: auto;
+  padding: var(--sp-4) var(--sp-5) 0;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: none;
+}
+.plan-day-tabs::-webkit-scrollbar { display: none; }
+
+.plan-day-tab {
+  flex-shrink: 0;
+  padding: var(--sp-2) var(--sp-4);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+  position: relative;
+  bottom: -1px;
+}
+
+.plan-day-tab:hover { background: var(--color-hover); color: var(--color-ink); }
+
+.plan-day-tab.active {
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border-color: var(--color-border);
+  border-bottom-color: var(--color-surface);
+  font-weight: 700;
+}
+
+.plan-day-tab.plan-day-partial::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.plan-day-tab.plan-day-done {
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+.plan-day-tab.plan-day-done::after {
+  content: ' ✓';
+}
+
+/* ── Day Card Content ────────────────────────────────── */
+.plan-day-content { padding: var(--sp-5) var(--sp-6); }
+
+.plan-day-card { display: none; }
+.plan-day-card.active { display: block; animation: revealUp var(--dur-base) var(--ease-out); }
+
+.plan-day-card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.plan-mini-progress {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  margin-bottom: var(--sp-3);
-  padding: var(--sp-2) 0;
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--color-hover);
+  border-radius: var(--radius-md);
 }
 
-.plan-progress-bar {
-  height: 6px;
-  background: var(--color-accent);
-  border-radius: 3px;
+.plan-mini-bar {
   flex: 1;
-  max-width: 200px;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.plan-mini-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
   transition: width var(--dur-base) var(--ease-out);
 }
 
-.plan-progress-text {
+.plan-mini-text {
   font-size: 12px;
+  font-weight: 600;
   color: var(--color-ink-muted);
-  font-weight: 500;
   white-space: nowrap;
+  min-width: 80px;
+}
+
+.plan-day-body li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: 5px 0;
+  transition: opacity var(--dur-base);
+}
+
+.plan-day-body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: var(--sp-5) 0 var(--sp-2);
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--color-accent);
+}
+
+/* ── Shared checkbox style ───────────────────────────── */
+.plan-checkbox {
+  margin-top: 3px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.plan-item-done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.plan-flat li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: 5px 0;
+  transition: opacity var(--dur-base);
+}
+
+@media (max-width: 640px) {
+  .plan-card-meta { display: none; }
+  .plan-overall-bar { width: 50px; }
+  .plan-day-content { padding: var(--sp-4); }
 }
 
 
