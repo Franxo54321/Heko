@@ -7,6 +7,11 @@
 <!-- ── Filters bar ───────────────────────────────────────── -->
 <form method="GET" class="filters-bar">
   <div class="form-group flex-1">
+    <label>Buscar</label>
+    <input type="text" id="materialSearch" placeholder="Buscar por nombre de archivo…" autocomplete="off"
+           oninput="filterMaterials(this.value)">
+  </div>
+  <div class="form-group flex-1">
     <label>Materia</label>
     <select name="subject" onchange="this.form.submit()">
       <option value="">Todas las materias</option>
@@ -188,7 +193,7 @@
 
         <div class="reading-actions">
           <a id="readingQuizBtn" href="#" class="btn btn-primary">Generar quiz de este material</a>
-          <a href="{{ url_for('tutor_page') }}" class="btn btn-secondary">Preguntar al tutor</a>
+          <a id="readingTutorBtn" href="{{ url_for('tutor_page') }}" class="btn btn-secondary">Preguntar al tutor</a>
         </div>
       </div>
     </div>
@@ -314,6 +319,10 @@
     var qBtn = document.getElementById('readingQuizBtn');
     if (qBtn) qBtn.href = "{{ url_for('create_quiz') }}?material_id=" + id;
 
+    // Update tutor link with material context
+    var tBtn = document.getElementById('readingTutorBtn');
+    if (tBtn) tBtn.href = "{{ url_for('tutor_page') }}?material_id=" + id;
+
     // Update index highlights
     document.querySelectorAll('.reading-index-item').forEach(function(b){
       b.classList.toggle('active', b.getAttribute('data-material-id') === String(id));
@@ -348,6 +357,32 @@
     html += '</ul>';
     el.innerHTML = html;
   }
+
+  /* ── Client-side search ─────────────────────────────── */
+  window.filterMaterials = function(query) {
+    var q = query.toLowerCase().trim();
+
+    // Filter material-row in list tab and unit details
+    document.querySelectorAll('.material-row').forEach(function(row) {
+      var name = row.querySelector('.material-row-name');
+      var text = name ? name.textContent.toLowerCase() : '';
+      row.style.display = text.indexOf(q) !== -1 ? '' : 'none';
+    });
+
+    // Filter reading index items
+    document.querySelectorAll('.reading-index-item').forEach(function(item) {
+      var text = item.textContent.toLowerCase();
+      item.style.display = text.indexOf(q) !== -1 ? '' : 'none';
+    });
+
+    // Show/hide unit expandable groups if all children hidden
+    document.querySelectorAll('#panel-por-unidad .expandable').forEach(function(details) {
+      var rows = details.querySelectorAll('.material-row');
+      var anyVisible = false;
+      rows.forEach(function(r) { if (r.style.display !== 'none') anyVisible = true; });
+      details.style.display = rows.length === 0 || anyVisible ? '' : 'none';
+    });
+  };
 
 })();
 </script>

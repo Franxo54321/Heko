@@ -540,7 +540,17 @@ def exam():
 @login_required
 def tutor_page():
     subjects = database.get_user_subjects(g.uid)
-    return render_template("tutor.html", subjects=subjects)
+    material_context = None
+    material_id = request.args.get("material_id")
+    if material_id:
+        mat = database.get_material(int(material_id))
+        if mat and str(mat.get("user_id")) == str(g.uid):
+            material_context = {
+                "filename": mat.get("filename", ""),
+                "summary": mat.get("summary", ""),
+                "subject": mat.get("subject", ""),
+            }
+    return render_template("tutor.html", subjects=subjects, material_context=material_context)
 
 
 @app.route("/tutor/solve", methods=["POST"])

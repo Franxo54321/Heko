@@ -4,8 +4,7 @@
 {% block content %}
 <h1 class="page-title">📚 Agente de Estudio Inteligente</h1>
 
-<p>Bienvenido a tu asistente de estudio personalizado.</p>
-
+<!-- ── Métricas ─────────────────────────────────────────── -->
 <div class="metrics-grid">
     <div class="metric-card glass-card">
         <span class="metric-value">{{ stats.total_materiales }}</span>
@@ -25,10 +24,34 @@
     </div>
 </div>
 
-<!-- Quick upload -->
+<!-- ── Acciones rápidas ────────────────────────────────── -->
+<div class="quick-actions">
+    <a href="{{ url_for('materials') }}" class="quick-action-card glass-card">
+        <span class="quick-action-icon">📋</span>
+        <span class="quick-action-label">Mis Materiales</span>
+    </a>
+    <a href="{{ url_for('quizzes') }}" class="quick-action-card glass-card">
+        <span class="quick-action-icon">❓</span>
+        <span class="quick-action-label">Crear Quiz</span>
+    </a>
+    <a href="{{ url_for('tutor_page') }}" class="quick-action-card glass-card">
+        <span class="quick-action-icon">🎓</span>
+        <span class="quick-action-label">Tutor</span>
+    </a>
+    <a href="{{ url_for('study_plan') }}" class="quick-action-card glass-card">
+        <span class="quick-action-icon">📝</span>
+        <span class="quick-action-label">Plan de Estudio</span>
+    </a>
+    <a href="{{ url_for('exam') }}" class="quick-action-card glass-card">
+        <span class="quick-action-icon">📑</span>
+        <span class="quick-action-label">Modelo de Examen</span>
+    </a>
+</div>
+
+<!-- ── Subida rápida ───────────────────────────────────── -->
 <div class="section glass-card">
     <h2>📂 Subir archivos por unidad</h2>
-    <form method="POST" action="{{ url_for('upload_home') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('upload_home') }}" enctype="multipart/form-data" id="homeUploadForm">
         <div class="form-row">
             <div class="form-group flex-1">
                 <label>Unidad</label>
@@ -63,11 +86,11 @@
             <label>Archivos</label>
             <input type="file" name="files" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" required>
         </div>
-        <button type="submit" class="btn btn-primary">🚀 Subir a esta unidad</button>
+        <button type="submit" class="btn btn-primary" id="homeUploadBtn">🚀 Subir a esta unidad</button>
     </form>
 </div>
 
-<!-- Materials by unit -->
+<!-- ── Materiales por unidad ───────────────────────────── -->
 <div class="section">
     <h2>📚 Materiales por unidad</h2>
     {% if units_data %}
@@ -85,22 +108,8 @@
         </details>
         {% endfor %}
     {% else %}
-        <p class="text-muted">No hay materiales asignados a unidades aún.</p>
+        <p class="text-muted">No hay materiales asignados a unidades aún. ¡Sube tu primer archivo arriba!</p>
     {% endif %}
-</div>
-
-<div class="section glass-card">
-    <h3>¿Qué puedo hacer?</h3>
-    <table class="info-table">
-        <tr><td><strong>📄 Subir Material</strong></td><td>Carga PDFs e imágenes, el agente los lee, interpreta y resume</td></tr>
-        <tr><td><strong>📋 Mis Materiales</strong></td><td>Consulta todos los materiales cargados y sus resúmenes</td></tr>
-        <tr><td><strong>📝 Plan de Estudio</strong></td><td>Genera un plan personalizado basado en tus materiales</td></tr>
-        <tr><td><strong>❓ Quizzes</strong></td><td>Crea quizzes de autoevaluación y mide tu progreso</td></tr>
-        <tr><td><strong>📑 Modelo de Examen</strong></td><td>Genera exámenes completos simulando evaluaciones reales</td></tr>
-        <tr><td><strong>🎓 Tutor</strong></td><td>Resuelve problemas paso a paso con explicaciones detalladas</td></tr>
-        <tr><td><strong>📊 Mi Progreso</strong></td><td>Visualiza tus estadísticas y evolución</td></tr>
-        <tr><td><strong>⚙️ Mis Materias</strong></td><td>Crea y elimina materias personalizadas</td></tr>
-    </table>
 </div>
 {% endblock %}
 
@@ -112,5 +121,11 @@ function toggleNewUnit(sel) {
 function toggleOtherSubject(sel) {
     document.getElementById('otherSubjectGroup').classList.toggle('hidden', sel.value !== 'Otra');
 }
+// Loading state for upload
+document.getElementById('homeUploadForm').addEventListener('submit', function() {
+    var btn = document.getElementById('homeUploadBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Subiendo y procesando…';
+});
 </script>
 {% endblock %}

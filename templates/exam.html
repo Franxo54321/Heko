@@ -19,7 +19,7 @@
             <label>Duración del examen (minutos)</label>
             <input type="number" name="duration" value="120" min="30" max="300" step="15">
         </div>
-        <button type="submit" class="btn btn-primary">📑 Generar Examen</button>
+        <button type="submit" class="btn btn-primary" id="examGenBtn">📑 Generar Examen</button>
     </form>
 </div>
 {% else %}
@@ -69,4 +69,17 @@
     <p class="text-muted">No hay exámenes guardados aún.</p>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var examForm = document.querySelector('form[method="POST"]');
+if (examForm) {
+    examForm.addEventListener('submit', function() {
+        var btn = document.getElementById('examGenBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Generando examen…';
+    });
+}
+</script>
 {% endblock %}

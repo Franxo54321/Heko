@@ -46,7 +46,7 @@
                     </select>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">🎯 Generar Quiz</button>
+            <button type="submit" class="btn btn-primary" id="quizGenBtn">🎯 Generar Quiz</button>
         </form>
     </div>
     {% else %}
@@ -99,5 +99,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     });
 });
+
+// Loading state for quiz generation
+var quizForm = document.querySelector('#tab-create form');
+if (quizForm) {
+    quizForm.addEventListener('submit', function() {
+        var btn = document.getElementById('quizGenBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Generando quiz…';
+    });
+}
 </script>
 {% endblock %}

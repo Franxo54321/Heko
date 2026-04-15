@@ -4,6 +4,14 @@
 {% block content %}
 <h1 class="page-title">🎓 Tutor Inteligente</h1>
 
+{% if material_context %}
+<div class="glass-card" style="padding:var(--sp-4);margin-bottom:var(--sp-5);border-left:3px solid var(--color-accent)">
+    <strong>📄 Contexto cargado:</strong> {{ material_context.filename }}
+    {% if material_context.subject %}<span class="badge badge-subject" style="margin-left:6px">{{ material_context.subject }}</span>{% endif %}
+    <p class="text-muted" style="margin:var(--sp-2) 0 0;font-size:13px">El resumen de este material se usará como contexto para tus preguntas.</p>
+</div>
+{% endif %}
+
 <div class="tabs">
     <button class="tab-btn active" data-tab="solve">Resolver Problema</button>
     <button class="tab-btn" data-tab="file">📎 Desde archivo</button>
@@ -23,7 +31,11 @@
         </div>
         <div class="form-group">
             <label>Describe el problema</label>
-            <textarea id="solveProblem" rows="5" placeholder="Ej: Calcula la integral de x² sen(x) dx"></textarea>
+            <textarea id="solveProblem" rows="5" placeholder="Ej: Calcula la integral de x² sen(x) dx">{% if material_context %}Basándote en el siguiente material ({{ material_context.filename }}):
+
+{{ material_context.summary[:500] }}
+
+Mi pregunta: {% endif %}</textarea>
         </div>
         <button class="btn btn-primary" onclick="solveProblem()">🔍 Resolver paso a paso</button>
         <div id="solveResult" class="result-box hidden"></div>
@@ -201,6 +213,11 @@ async function guidePractice() {
 
 // Chat
 let chatMessages = [];
+
+{% if material_context %}
+// Auto-load material context into chat
+chatMessages.push({role: 'system', content: 'El usuario está estudiando el material ' + {{ material_context.filename|tojson }} + '. Resumen: ' + {{ material_context.summary[:800]|tojson }}});
+{% endif %}
 
 function addChatMessage(role, content) {
     const container = document.getElementById('chatContainer');

@@ -498,6 +498,43 @@ input[type="radio"] {
   font-weight: 500;
 }
 
+/* ── Quick Actions ──────────────────────────────────── */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-7);
+}
+
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-5) var(--sp-3);
+  text-decoration: none;
+  color: var(--color-ink);
+  border-radius: var(--radius-md);
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  cursor: pointer;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+}
+
+.quick-action-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.quick-action-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
 
 /* ---------------------------------------------------------
    11. BUTTONS
@@ -1652,6 +1689,50 @@ select:focus {
 .hidden     { display: none !important; }
 .text-muted { color: var(--color-ink-muted); font-size: 13px; }
 .text-error { color: var(--color-danger); }
+
+/* ── Plan Checkboxes & Progress ─────────────────────── */
+.plan-checkbox {
+  margin-right: 8px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.plan-checklist li {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 0;
+  transition: opacity var(--dur-base) var(--ease-in-out);
+}
+
+.plan-item-done {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.plan-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) 0;
+}
+
+.plan-progress-bar {
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 3px;
+  flex: 1;
+  max-width: 200px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.plan-progress-text {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
 
 
 /* ---------------------------------------------------------
