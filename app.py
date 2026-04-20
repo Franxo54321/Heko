@@ -730,6 +730,20 @@ def _md_to_plain(md_text: str) -> str:
     return BeautifulSoup(html, "html.parser").get_text("\n", strip=True)
 
 
+def _sanitize_latin1(text: str) -> str:
+    """Replace common Unicode chars that Helvetica/latin-1 can't render."""
+    _MAP = {
+        "\u2014": "-", "\u2013": "-", "\u2018": "'", "\u2019": "'",
+        "\u201c": '"', "\u201d": '"', "\u2022": "-", "\u2026": "...",
+        "\u2192": "->", "\u2190": "<-", "\u2713": "v", "\u2714": "v",
+        "\u2716": "x", "\u25cf": "*", "\u25cb": "o", "\u00b7": "-",
+        "\u2003": " ", "\u2002": " ", "\u200b": "",
+    }
+    for old, new in _MAP.items():
+        text = text.replace(old, new)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
+
 @app.route("/study-plan/<int:plan_id>/pdf")
 @login_required
 def study_plan_pdf(plan_id):
@@ -751,10 +765,13 @@ def study_plan_pdf(plan_id):
 
     # Title
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, plan["title"], new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 12, _sanitize_latin1(plan["title"]), new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(120, 120, 120)
-    meta = f"{plan['created_at'][:10]}  |  {plan['days']} dias  |  {plan['hours_per_day']}h/dia"
+    created = plan.get("created_at", "")
+    if created and len(created) >= 10:
+        created = created[:10]
+    meta = f"{created}  |  {plan.get('days', '')} dias  |  {plan.get('hours_per_day', '')}h/dia"
     pdf.cell(0, 8, meta, new_x="LMARGIN", new_y="NEXT")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(6)
@@ -765,11 +782,13 @@ def study_plan_pdf(plan_id):
             pdf.ln(3)
             continue
 
+        safe = _sanitize_latin1(stripped)
+
         # Detect heading-like lines (lines that were ## or ### in markdown)
         if re.match(r"^D[ií]a\s+\d+", stripped, re.IGNORECASE):
             pdf.ln(4)
             pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 9, stripped, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 9, safe, new_x="LMARGIN", new_y="NEXT")
             pdf.set_draw_color(15, 118, 110)
             pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 170, pdf.get_y())
             pdf.ln(3)
@@ -777,11 +796,11 @@ def study_plan_pdf(plan_id):
         elif re.match(r"^(Agenda|Material de estudio|Repaso|Autoevaluaci[oó]n)", stripped, re.IGNORECASE):
             pdf.ln(2)
             pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, stripped, new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 8, safe, new_x="LMARGIN", new_y="NEXT")
             pdf.set_font("Helvetica", "", 11)
         else:
             pdf.set_font("Helvetica", "", 10)
-            pdf.multi_cell(0, 6, stripped)
+            pdf.multi_cell(0, 6, safe)
 
     buf = io.BytesIO()
     pdf.output(buf)
@@ -796,36 +815,16 @@ def study_plan_pdf(plan_id):
     )
 
 
-@app.route("/study-plan/<int:plan_id>/audio")
+@app.route("/study-plan/<int:plan_id>/audio-text")
 @login_required
-def study_plan_audio(plan_id):
+def study_plan_audio_text(plan_id):
+    """Return plain text of the plan for browser-based TTS."""
     plan = database.get_study_plan(plan_id)
     if not plan or plan["user_id"] != g.uid:
-        flash("Plan no encontrado.", "error")
-        return redirect(url_for("study_plan"))
-
-    import io
-    import re
-    from gtts import gTTS
+        return jsonify({"error": "Plan no encontrado."}), 404
 
     plain = _md_to_plain(plan["plan_markdown"])
-
-    # Add pauses for better listening: double newline → "..."
-    text_for_tts = re.sub(r"\n{2,}", ". ... ", plain)
-    text_for_tts = re.sub(r"\n", ". ", text_for_tts)
-
-    tts = gTTS(text=text_for_tts, lang="es", slow=False)
-    buf = io.BytesIO()
-    tts.write_to_fp(buf)
-    buf.seek(0)
-
-    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
-    return send_file(
-        buf,
-        mimetype="audio/mpeg",
-        as_attachment=True,
-        download_name=f"{safe_title}.mp3",
-    )
+    return jsonify({"title": plan["title"], "text": plain})
 
 
 # ---------------------------------------------------------------------------

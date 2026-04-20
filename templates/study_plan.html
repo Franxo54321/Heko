@@ -78,10 +78,23 @@
                     <a href="{{ url_for('study_plan_pdf', plan_id=plan.id) }}" class="btn btn-secondary btn-sm plan-export-btn">
                         <span class="plan-export-icon">PDF</span> Descargar PDF
                     </a>
-                    <a href="{{ url_for('study_plan_audio', plan_id=plan.id) }}" class="btn btn-secondary btn-sm plan-export-btn"
-                       onclick="this.innerHTML='<span class=\'plan-export-icon\'>♪</span> Generando audio…'; this.style.pointerEvents='none'">
-                        <span class="plan-export-icon">♪</span> Descargar Audio
-                    </a>
+                    <button class="btn btn-secondary btn-sm plan-export-btn plan-audio-btn"
+                            data-plan-id="{{ plan.id }}"
+                            onclick="toggleAudio(this, {{ plan.id }})">
+                        <span class="plan-export-icon">♪</span> <span class="plan-audio-label">Escuchar</span>
+                    </button>
+                    <button class="btn btn-ghost btn-sm plan-audio-stop" id="audioStop-{{ plan.id }}" style="display:none"
+                            onclick="stopAudio({{ plan.id }})">
+                        Detener
+                    </button>
+                    <select class="plan-audio-speed" id="audioSpeed-{{ plan.id }}" style="display:none"
+                            onchange="changeAudioSpeed({{ plan.id }}, this.value)" title="Velocidad">
+                        <option value="0.8">0.8x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.2">1.2x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                    </select>
                 </div>
                 <!-- Day tabs (built by JS) -->
                 <div class="plan-day-tabs" id="tabs-{{ plan.id }}"></div>
@@ -297,5 +310,127 @@ function updateOverall(planId) {
     // Color fill green when done
     wrap.querySelector('.plan-overall-fill').style.background = pct === 100 ? '#16a34a' : '';
 }
+
+// ── Browser TTS (Web Speech API) ─────────────────────
+var _ttsState = {};  // { planId: { utterance, playing } }
+
+window.toggleAudio = function(btn, planId) {
+    var state = _ttsState[planId];
+
+    // If already playing, pause
+    if (state && state.playing) {
+        speechSynthesis.pause();
+        state.playing = false;
+        btn.querySelector('.plan-audio-label').textContent = 'Reanudar';
+        return;
+    }
+
+    // If paused, resume
+    if (state && speechSynthesis.paused) {
+        speechSynthesis.resume();
+        state.playing = true;
+        btn.querySelector('.plan-audio-label').textContent = 'Pausar';
+        return;
+    }
+
+    // Start new
+    btn.querySelector('.plan-audio-label').textContent = 'Cargando...';
+    btn.disabled = true;
+
+    fetch('/study-plan/' + planId + '/audio-text')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                alert(data.error);
+                btn.querySelector('.plan-audio-label').textContent = 'Escuchar';
+                btn.disabled = false;
+                return;
+            }
+
+            // Split text into chunks (SpeechSynthesis has ~5000 char limit per utterance)
+            var text = data.text;
+            var chunks = [];
+            var maxLen = 4000;
+            while (text.length > 0) {
+                if (text.length <= maxLen) {
+                    chunks.push(text);
+                    break;
+                }
+                var cut = text.lastIndexOf('.', maxLen);
+                if (cut < maxLen / 2) cut = maxLen;
+                chunks.push(text.substring(0, cut + 1));
+                text = text.substring(cut + 1).trim();
+            }
+
+            var speed = parseFloat(document.getElementById('audioSpeed-' + planId).value) || 1;
+            var chunkIdx = 0;
+
+            function speakNext() {
+                if (chunkIdx >= chunks.length) {
+                    onEnd();
+                    return;
+                }
+                var utt = new SpeechSynthesisUtterance(chunks[chunkIdx]);
+                utt.lang = 'es-ES';
+                utt.rate = speed;
+
+                // Try to pick a Spanish voice
+                var voices = speechSynthesis.getVoices();
+                for (var i = 0; i < voices.length; i++) {
+                    if (voices[i].lang && voices[i].lang.indexOf('es') === 0) {
+                        utt.voice = voices[i];
+                        break;
+                    }
+                }
+
+                utt.onend = function() {
+                    chunkIdx++;
+                    speakNext();
+                };
+                utt.onerror = function() {
+                    onEnd();
+                };
+
+                _ttsState[planId] = { playing: true, speed: speed };
+                speechSynthesis.speak(utt);
+            }
+
+            function onEnd() {
+                _ttsState[planId] = null;
+                btn.querySelector('.plan-audio-label').textContent = 'Escuchar';
+                btn.disabled = false;
+                document.getElementById('audioStop-' + planId).style.display = 'none';
+                document.getElementById('audioSpeed-' + planId).style.display = 'none';
+            }
+
+            btn.disabled = false;
+            btn.querySelector('.plan-audio-label').textContent = 'Pausar';
+            document.getElementById('audioStop-' + planId).style.display = '';
+            document.getElementById('audioSpeed-' + planId).style.display = '';
+
+            speechSynthesis.cancel(); // Cancel any previous
+            speakNext();
+        })
+        .catch(function() {
+            btn.querySelector('.plan-audio-label').textContent = 'Escuchar';
+            btn.disabled = false;
+            alert('Error al cargar el texto del plan.');
+        });
+};
+
+window.stopAudio = function(planId) {
+    speechSynthesis.cancel();
+    _ttsState[planId] = null;
+    var btn = document.querySelector('[data-plan-id="' + planId + '"].plan-audio-btn');
+    if (btn) btn.querySelector('.plan-audio-label').textContent = 'Escuchar';
+    document.getElementById('audioStop-' + planId).style.display = 'none';
+    document.getElementById('audioSpeed-' + planId).style.display = 'none';
+};
+
+window.changeAudioSpeed = function(planId, val) {
+    var state = _ttsState[planId];
+    if (state) state.speed = parseFloat(val);
+    // Note: speed change takes effect on next chunk
+};
 </script>
 {% endblock %}
