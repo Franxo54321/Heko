@@ -802,11 +802,16 @@ def study_plan_pdf(plan_id):
             pdf.set_font("Helvetica", "", 10)
             pdf.multi_cell(0, 6, safe)
 
-    buf = io.BytesIO()
-    pdf.output(buf)
+    try:
+        pdf_bytes = pdf.output()
+    except Exception:
+        pdf_bytes = pdf.output(dest="S")
+
+    buf = io.BytesIO(pdf_bytes if isinstance(pdf_bytes, (bytes, bytearray)) else pdf_bytes.encode("latin-1"))
     buf.seek(0)
 
-    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
+    raw_title = plan.get("title") or "plan"
+    safe_title = re.sub(r"[^\w\s-]", "", raw_title).strip().replace(" ", "_")[:50] or "plan"
     return send_file(
         buf,
         mimetype="application/pdf",
