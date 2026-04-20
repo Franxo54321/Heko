@@ -722,12 +722,22 @@ def admin_delete_user(user_id):
 # Study Plan exports (PDF & Audio)
 # ---------------------------------------------------------------------------
 
-def _md_to_plain(md_text: str) -> str:
-    """Convert markdown to plain text for TTS."""
-    import markdown as md_lib
-    from bs4 import BeautifulSoup
-    html = md_lib.markdown(md_text)
-    return BeautifulSoup(html, "html.parser").get_text("\n", strip=True)
+def _md_to_plain(md_text) -> str:
+    """Convert markdown to plain text for TTS. Falls back to regex strip."""
+    if not md_text:
+        return ""
+    text = str(md_text)
+    try:
+        import markdown as md_lib
+        from bs4 import BeautifulSoup
+        html = md_lib.markdown(text)
+        return BeautifulSoup(html, "html.parser").get_text("\n", strip=True)
+    except Exception:
+        import re as _re
+        text = _re.sub(r"#{1,6}\s*", "", text)
+        text = _re.sub(r"\*{1,3}(.+?)\*{1,3}", r"\1", text)
+        text = _re.sub(r"\[(.+?)\]\(.+?\)", r"\1", text)
+        return text
 
 
 def _sanitize_latin1(text: str) -> str:
@@ -747,77 +757,87 @@ def _sanitize_latin1(text: str) -> str:
 @app.route("/study-plan/<int:plan_id>/pdf")
 @login_required
 def study_plan_pdf(plan_id):
+    import io
+    import re
+    try:
+        from fpdf import FPDF
+    except ImportError:
+        app.logger.error("fpdf2 not installed")
+        return "PDF no disponible: falta fpdf2", 500
+
     plan = database.get_study_plan(plan_id)
     if not plan or plan["user_id"] != g.uid:
         flash("Plan no encontrado.", "error")
         return redirect(url_for("study_plan"))
 
-    from fpdf import FPDF
-    import io
-    import re
-
-    plain = _md_to_plain(plan["plan_markdown"])
-    lines = plain.split("\n")
-
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=20)
-    pdf.add_page()
-
-    # Title
-    pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, _sanitize_latin1(plan["title"]), new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(120, 120, 120)
-    created = plan.get("created_at", "")
-    if created and len(created) >= 10:
-        created = created[:10]
-    meta = f"{created}  |  {plan.get('days', '')} dias  |  {plan.get('hours_per_day', '')}h/dia"
-    pdf.cell(0, 8, meta, new_x="LMARGIN", new_y="NEXT")
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(6)
-
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            pdf.ln(3)
-            continue
-
-        safe = _sanitize_latin1(stripped)
-
-        # Detect heading-like lines (lines that were ## or ### in markdown)
-        if re.match(r"^D[ií]a\s+\d+", stripped, re.IGNORECASE):
-            pdf.ln(4)
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 9, safe, new_x="LMARGIN", new_y="NEXT")
-            pdf.set_draw_color(15, 118, 110)
-            pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 170, pdf.get_y())
-            pdf.ln(3)
-            pdf.set_font("Helvetica", "", 11)
-        elif re.match(r"^(Agenda|Material de estudio|Repaso|Autoevaluaci[oó]n)", stripped, re.IGNORECASE):
-            pdf.ln(2)
-            pdf.set_font("Helvetica", "B", 12)
-            pdf.cell(0, 8, safe, new_x="LMARGIN", new_y="NEXT")
-            pdf.set_font("Helvetica", "", 11)
-        else:
-            pdf.set_font("Helvetica", "", 10)
-            pdf.multi_cell(0, 6, safe)
-
     try:
-        pdf_bytes = pdf.output()
-    except Exception:
-        pdf_bytes = pdf.output(dest="S")
+        plan_markdown = plan.get("plan_markdown") or ""
+        plain = _md_to_plain(plan_markdown)
+        lines = plain.split("\n")
 
-    buf = io.BytesIO(pdf_bytes if isinstance(pdf_bytes, (bytes, bytearray)) else pdf_bytes.encode("latin-1"))
-    buf.seek(0)
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=20)
+        pdf.add_page()
 
-    raw_title = plan.get("title") or "plan"
-    safe_title = re.sub(r"[^\w\s-]", "", raw_title).strip().replace(" ", "_")[:50] or "plan"
-    return send_file(
-        buf,
-        mimetype="application/pdf",
-        as_attachment=True,
-        download_name=f"{safe_title}.pdf",
-    )
+        # Title
+        pdf.set_font("Helvetica", "B", 18)
+        title_str = _sanitize_latin1(str(plan.get("title") or "Plan de estudio"))
+        pdf.cell(0, 12, title_str, ln=1)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(120, 120, 120)
+        created = plan.get("created_at") or ""
+        # Handle datetime objects returned by psycopg2
+        if hasattr(created, "strftime"):
+            created = created.strftime("%Y-%m-%d")
+        else:
+            created = str(created)[:10]
+        days_val = plan.get("days") or ""
+        hrs_val = plan.get("hours_per_day") or ""
+        meta = _sanitize_latin1(f"{created}  |  {days_val} dias  |  {hrs_val}h/dia")
+        pdf.cell(0, 8, meta, ln=1)
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(6)
+
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                pdf.ln(3)
+                continue
+
+            safe = _sanitize_latin1(stripped)
+
+            if re.match(r"^D[ií]a\s+\d+", stripped, re.IGNORECASE):
+                pdf.ln(4)
+                pdf.set_font("Helvetica", "B", 14)
+                pdf.cell(0, 9, safe, ln=1)
+                pdf.set_draw_color(15, 118, 110)
+                pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + 170, pdf.get_y())
+                pdf.ln(3)
+                pdf.set_font("Helvetica", "", 11)
+            elif re.match(r"^(Agenda|Material de estudio|Repaso|Autoevaluaci[oó]n)", stripped, re.IGNORECASE):
+                pdf.ln(2)
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.cell(0, 8, safe, ln=1)
+                pdf.set_font("Helvetica", "", 11)
+            else:
+                pdf.set_font("Helvetica", "", 10)
+                pdf.multi_cell(0, 6, safe)
+
+        pdf_bytes = bytes(pdf.output())
+        buf = io.BytesIO(pdf_bytes)
+        buf.seek(0)
+
+        raw_title = plan.get("title") or "plan"
+        safe_title = re.sub(r"[^\w\s-]", "", str(raw_title)).strip().replace(" ", "_")[:50] or "plan"
+        return send_file(
+            buf,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"{safe_title}.pdf",
+        )
+    except Exception as exc:
+        app.logger.exception("PDF generation failed for plan %s: %s", plan_id, exc)
+        return f"Error generando PDF: {type(exc).__name__}: {exc}", 500
 
 
 @app.route("/study-plan/<int:plan_id>/audio-text")
