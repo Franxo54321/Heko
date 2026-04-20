@@ -776,17 +776,20 @@ def study_plan_pdf(plan_id):
         lines = plain.split("\n")
 
         pdf = FPDF()
+        pdf.set_margins(15, 15, 15)
         pdf.set_auto_page_break(auto=True, margin=20)
         pdf.add_page()
+        # Usable width para multi_cell
+        usable_w = pdf.w - pdf.l_margin - pdf.r_margin
 
         # Title
         pdf.set_font("Helvetica", "B", 18)
         title_str = _sanitize_latin1(str(plan.get("title") or "Plan de estudio"))
-        pdf.cell(0, 12, title_str, ln=1)
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(usable_w, 12, title_str)
         pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(120, 120, 120)
         created = plan.get("created_at") or ""
-        # Handle datetime objects returned by psycopg2
         if hasattr(created, "strftime"):
             created = created.strftime("%Y-%m-%d")
         else:
@@ -794,7 +797,8 @@ def study_plan_pdf(plan_id):
         days_val = plan.get("days") or ""
         hrs_val = plan.get("hours_per_day") or ""
         meta = _sanitize_latin1(f"{created}  |  {days_val} dias  |  {hrs_val}h/dia")
-        pdf.cell(0, 8, meta, ln=1)
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(usable_w, 8, meta)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(6)
 
@@ -805,23 +809,31 @@ def study_plan_pdf(plan_id):
                 continue
 
             safe = _sanitize_latin1(stripped)
+            pdf.set_x(pdf.l_margin)  # siempre resetear X antes de renderizar
 
             if re.match(r"^D[ií]a\s+\d+", stripped, re.IGNORECASE):
                 pdf.ln(4)
                 pdf.set_font("Helvetica", "B", 14)
-                pdf.cell(0, 9, safe, ln=1)
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(usable_w, 9, safe)
+                y_line = pdf.get_y()
                 pdf.set_draw_color(15, 118, 110)
-                pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + 170, pdf.get_y())
+                pdf.line(pdf.l_margin, y_line, pdf.l_margin + usable_w, y_line)
                 pdf.ln(3)
                 pdf.set_font("Helvetica", "", 11)
             elif re.match(r"^(Agenda|Material de estudio|Repaso|Autoevaluaci[oó]n)", stripped, re.IGNORECASE):
                 pdf.ln(2)
                 pdf.set_font("Helvetica", "B", 12)
-                pdf.cell(0, 8, safe, ln=1)
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(usable_w, 8, safe)
                 pdf.set_font("Helvetica", "", 11)
             else:
                 pdf.set_font("Helvetica", "", 10)
-                pdf.multi_cell(0, 6, safe)
+                pdf.set_x(pdf.l_margin)
+                try:
+                    pdf.multi_cell(usable_w, 6, safe)
+                except Exception:
+                    pass  # saltar lineas que no se puedan renderizar
 
         pdf_bytes = bytes(pdf.output())
         buf = io.BytesIO(pdf_bytes)
