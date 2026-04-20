@@ -1622,6 +1622,26 @@ select:focus {
 }
 .filters-bar .form-group { margin-bottom: 0; }
 
+/* Materials toolbar (count + expand/collapse buttons) */
+.materials-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.materials-toolbar-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+/* Relative date inline */
+.material-row-date {
+  font-size: 12px;
+}
+
 /* Rename inline form */
 .rename-form {
   display: inline-flex;

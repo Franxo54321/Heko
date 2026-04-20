@@ -29,12 +29,29 @@
       {% endfor %}
     </select>
   </div>
+  <div class="form-group flex-1">
+    <label>Ordenar</label>
+    <select id="sortSelect" onchange="sortMaterials(this.value)">
+      <option value="default">Por defecto</option>
+      <option value="name-asc">Nombre A→Z</option>
+      <option value="name-desc">Nombre Z→A</option>
+      <option value="date-desc">Más recientes</option>
+      <option value="date-asc">Más antiguos</option>
+      <option value="subject">Por materia</option>
+    </select>
+  </div>
   <div class="form-group" style="align-self:flex-end">
     <a href="{{ url_for('materials') }}" class="btn btn-ghost btn-sm">Limpiar</a>
   </div>
 </form>
 
-<p class="text-muted" style="margin-bottom:var(--sp-4)">Mostrando {{ materials|length }} de {{ all_count }} materiales</p>
+<div class="materials-toolbar">
+  <p class="text-muted" id="materialsCount">Mostrando {{ materials|length }} de {{ all_count }} materiales</p>
+  <div class="materials-toolbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="toggleAllUnits(true)">Expandir todo</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleAllUnits(false)">Colapsar todo</button>
+  </div>
+</div>
 
 <!-- ── Tabs ──────────────────────────────────────────────── -->
 <div class="tabs" id="mainTabs">
@@ -61,7 +78,10 @@
 
       <div class="expandable-content" style="padding-top:0">
         {% for mat in mats %}
-        <div class="material-row">
+        <div class="material-row"
+             data-name="{{ mat.filename|lower|e }}"
+             data-date="{{ mat.created_at or '' }}"
+             data-subject="{{ mat.subject|lower|e }}">
           <span class="material-row-icon">
             {% if mat.file_type == 'pdf' %}📄{% elif mat.file_type == 'docx' %}📝{% elif mat.file_type == 'txt' %}🗒️{% else %}📎{% endif %}
           </span>
@@ -70,6 +90,7 @@
             <div class="material-row-meta">
               Resumen: {{ mat.summary[:80] }}{% if mat.summary|length > 80 %}…{% endif %}
             </div>
+            <div class="material-row-date text-muted" data-date="{{ mat.created_at or '' }}"></div>
           </div>
           <div class="material-row-actions">
             <button class="btn btn-ghost btn-sm" title="Renombrar"
@@ -103,7 +124,10 @@
 
   {% if materials %}
     {% for mat in materials %}
-    <div class="material-row">
+    <div class="material-row"
+         data-name="{{ mat.filename|lower|e }}"
+         data-date="{{ mat.created_at or '' }}"
+         data-subject="{{ mat.subject|lower|e }}">
       <span class="material-row-icon">
         {% if mat.file_type == 'pdf' %}📄{% elif mat.file_type == 'docx' %}📝{% elif mat.file_type == 'txt' %}🗒️{% else %}📎{% endif %}
       </span>
@@ -113,6 +137,7 @@
           <span class="badge badge-subject" style="margin-right:4px">{{ mat.subject }}</span>
           <span class="badge badge-unit" style="margin-right:4px">{{ mat.unit or 'Sin unidad' }}</span>
           {{ mat.created_at[:10] if mat.created_at else '' }}
+          <span class="material-row-date text-muted" data-date="{{ mat.created_at or '' }}"></span>
         </div>
       </div>
       <div class="material-row-actions">
@@ -361,21 +386,29 @@
   /* ── Client-side search ─────────────────────────────── */
   window.filterMaterials = function(query) {
     var q = query.toLowerCase().trim();
+    var visible = 0;
 
-    // Filter material-row in list tab and unit details
     document.querySelectorAll('.material-row').forEach(function(row) {
       var name = row.querySelector('.material-row-name');
       var text = name ? name.textContent.toLowerCase() : '';
-      row.style.display = text.indexOf(q) !== -1 ? '' : 'none';
+      var show = text.indexOf(q) !== -1;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
 
-    // Filter reading index items
+    // Update counter
+    var counter = document.getElementById('materialsCount');
+    if (counter) {
+      counter.textContent = q
+        ? visible + ' resultado' + (visible !== 1 ? 's' : '') + ' para "' + query + '"'
+        : 'Mostrando {{ materials|length }} de {{ all_count }} materiales';
+    }
+
     document.querySelectorAll('.reading-index-item').forEach(function(item) {
       var text = item.textContent.toLowerCase();
       item.style.display = text.indexOf(q) !== -1 ? '' : 'none';
     });
 
-    // Show/hide unit expandable groups if all children hidden
     document.querySelectorAll('#panel-por-unidad .expandable').forEach(function(details) {
       var rows = details.querySelectorAll('.material-row');
       var anyVisible = false;
@@ -383,6 +416,64 @@
       details.style.display = rows.length === 0 || anyVisible ? '' : 'none';
     });
   };
+
+  /* ── Sort materials ──────────────────────────────────── */
+  window.sortMaterials = function(order) {
+    ['panel-lista', 'panel-por-unidad'].forEach(function(panelId) {
+      var panel = document.getElementById(panelId);
+      if (!panel) return;
+      var containers = panelId === 'panel-lista'
+        ? [panel]
+        : Array.from(panel.querySelectorAll('.expandable-content'));
+
+      containers.forEach(function(container) {
+        var rows = Array.from(container.querySelectorAll('.material-row'));
+        if (rows.length < 2) return;
+        rows.sort(function(a, b) {
+          if (order === 'name-asc')   return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+          if (order === 'name-desc')  return (b.dataset.name || '').localeCompare(a.dataset.name || '');
+          if (order === 'date-desc')  return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+          if (order === 'date-asc')   return (a.dataset.date || '').localeCompare(b.dataset.date || '');
+          if (order === 'subject')    return (a.dataset.subject || '').localeCompare(b.dataset.subject || '');
+          return 0;
+        });
+        rows.forEach(function(r) { container.appendChild(r); });
+      });
+    });
+  };
+
+  /* ── Expand / collapse all units ─────────────────────── */
+  window.toggleAllUnits = function(open) {
+    document.querySelectorAll('#panel-por-unidad .expandable').forEach(function(d) {
+      d.open = open;
+    });
+  };
+
+  /* ── Relative dates ──────────────────────────────────── */
+  function relativeDate(isoStr) {
+    if (!isoStr) return '';
+    var d = new Date(isoStr);
+    if (isNaN(d)) return isoStr.slice(0, 10);
+    var now  = Date.now();
+    var diff = now - d.getTime();
+    var mins = Math.floor(diff / 60000);
+    var hrs  = Math.floor(mins / 60);
+    var days = Math.floor(hrs / 24);
+    var wks  = Math.floor(days / 7);
+    var mons = Math.floor(days / 30);
+    if (mins < 2)  return 'Justo ahora';
+    if (mins < 60) return 'Hace ' + mins + ' min';
+    if (hrs  < 24) return 'Hace ' + hrs  + (hrs  === 1 ? ' hora'  : ' horas');
+    if (days < 7)  return 'Hace ' + days + (days === 1 ? ' día'   : ' días');
+    if (wks  < 5)  return 'Hace ' + wks  + (wks  === 1 ? ' semana': ' semanas');
+    if (mons < 12) return 'Hace ' + mons + (mons === 1 ? ' mes'   : ' meses');
+    return d.toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
+  }
+
+  document.querySelectorAll('.material-row-date[data-date]').forEach(function(el) {
+    var rel = relativeDate(el.getAttribute('data-date'));
+    if (rel) el.textContent = '· ' + rel;
+  });
 
 })();
 </script>
