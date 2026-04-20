@@ -1869,6 +1869,37 @@ select:focus {
   border-top: 1px solid var(--color-border);
 }
 
+/* ── Plan export buttons ────────────────────────────── */
+.plan-export-actions {
+  display: flex;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+}
+
+.plan-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  text-decoration: none;
+}
+
+.plan-export-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
 /* ── Day Tabs ────────────────────────────────────────── */
 .plan-day-tabs {
   display: flex;

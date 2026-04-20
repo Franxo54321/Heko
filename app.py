@@ -10,7 +10,7 @@ from functools import wraps
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, jsonify, g,
+    session, flash, jsonify, g, send_file,
 )
 from werkzeug.utils import secure_filename
 
@@ -716,6 +716,116 @@ def admin_delete_user(user_id):
         database.delete_user(user_id)
         flash("Usuario eliminado.", "success")
     return redirect(url_for("admin_panel"))
+
+
+# ---------------------------------------------------------------------------
+# Study Plan exports (PDF & Audio)
+# ---------------------------------------------------------------------------
+
+def _md_to_plain(md_text: str) -> str:
+    """Convert markdown to plain text for TTS."""
+    import markdown as md_lib
+    from bs4 import BeautifulSoup
+    html = md_lib.markdown(md_text)
+    return BeautifulSoup(html, "html.parser").get_text("\n", strip=True)
+
+
+@app.route("/study-plan/<int:plan_id>/pdf")
+@login_required
+def study_plan_pdf(plan_id):
+    plan = database.get_study_plan(plan_id)
+    if not plan or plan["user_id"] != g.uid:
+        flash("Plan no encontrado.", "error")
+        return redirect(url_for("study_plan"))
+
+    from fpdf import FPDF
+    import io
+    import re
+
+    plain = _md_to_plain(plan["plan_markdown"])
+    lines = plain.split("\n")
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # Title
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 12, plan["title"], new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(120, 120, 120)
+    meta = f"{plan['created_at'][:10]}  |  {plan['days']} dias  |  {plan['hours_per_day']}h/dia"
+    pdf.cell(0, 8, meta, new_x="LMARGIN", new_y="NEXT")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(6)
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            pdf.ln(3)
+            continue
+
+        # Detect heading-like lines (lines that were ## or ### in markdown)
+        if re.match(r"^D[ií]a\s+\d+", stripped, re.IGNORECASE):
+            pdf.ln(4)
+            pdf.set_font("Helvetica", "B", 14)
+            pdf.cell(0, 9, stripped, new_x="LMARGIN", new_y="NEXT")
+            pdf.set_draw_color(15, 118, 110)
+            pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 170, pdf.get_y())
+            pdf.ln(3)
+            pdf.set_font("Helvetica", "", 11)
+        elif re.match(r"^(Agenda|Material de estudio|Repaso|Autoevaluaci[oó]n)", stripped, re.IGNORECASE):
+            pdf.ln(2)
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 8, stripped, new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("Helvetica", "", 11)
+        else:
+            pdf.set_font("Helvetica", "", 10)
+            pdf.multi_cell(0, 6, stripped)
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
+
+    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
+    return send_file(
+        buf,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"{safe_title}.pdf",
+    )
+
+
+@app.route("/study-plan/<int:plan_id>/audio")
+@login_required
+def study_plan_audio(plan_id):
+    plan = database.get_study_plan(plan_id)
+    if not plan or plan["user_id"] != g.uid:
+        flash("Plan no encontrado.", "error")
+        return redirect(url_for("study_plan"))
+
+    import io
+    import re
+    from gtts import gTTS
+
+    plain = _md_to_plain(plan["plan_markdown"])
+
+    # Add pauses for better listening: double newline → "..."
+    text_for_tts = re.sub(r"\n{2,}", ". ... ", plain)
+    text_for_tts = re.sub(r"\n", ". ", text_for_tts)
+
+    tts = gTTS(text=text_for_tts, lang="es", slow=False)
+    buf = io.BytesIO()
+    tts.write_to_fp(buf)
+    buf.seek(0)
+
+    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
+    return send_file(
+        buf,
+        mimetype="audio/mpeg",
+        as_attachment=True,
+        download_name=f"{safe_title}.mp3",
+    )
 
 
 # ---------------------------------------------------------------------------

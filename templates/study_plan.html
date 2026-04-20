@@ -73,6 +73,16 @@
 
             <!-- Body -->
             <div class="plan-card-body" style="display:none">
+                <!-- Export actions -->
+                <div class="plan-export-actions">
+                    <a href="{{ url_for('study_plan_pdf', plan_id=plan.id) }}" class="btn btn-secondary btn-sm plan-export-btn">
+                        <span class="plan-export-icon">PDF</span> Descargar PDF
+                    </a>
+                    <a href="{{ url_for('study_plan_audio', plan_id=plan.id) }}" class="btn btn-secondary btn-sm plan-export-btn"
+                       onclick="this.innerHTML='<span class=\'plan-export-icon\'>♪</span> Generando audio…'; this.style.pointerEvents='none'">
+                        <span class="plan-export-icon">♪</span> Descargar Audio
+                    </a>
+                </div>
                 <!-- Day tabs (built by JS) -->
                 <div class="plan-day-tabs" id="tabs-{{ plan.id }}"></div>
                 <!-- Day content (built by JS) -->
