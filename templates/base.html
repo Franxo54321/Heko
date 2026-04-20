@@ -25,29 +25,29 @@
         {% if current_user %}
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>📚 Agente de Estudio</h2>
+                <h2>Agente de Estudio</h2>
                 <button class="sidebar-toggle" id="sidebarClose" aria-label="Cerrar menú">✕</button>
             </div>
             <div class="sidebar-user">
-                👤 <strong>{{ current_user.display_name or current_user.username }}</strong>
+                <strong>{{ current_user.display_name or current_user.username }}</strong>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-section-label">Contenido</div>
-                <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">🏠 Inicio</a>
-                <a href="{{ url_for('materials') }}" class="nav-link {% if request.endpoint == 'materials' %}active{% endif %}">📋 Mis Materiales</a>
-                <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">📄 Subir Material</a>
+                <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">Inicio</a>
+                <a href="{{ url_for('materials') }}" class="nav-link {% if request.endpoint == 'materials' %}active{% endif %}">Mis Materiales</a>
+                <a href="{{ url_for('upload') }}" class="nav-link {% if request.endpoint == 'upload' %}active{% endif %}">Subir Material</a>
 
                 <div class="nav-section-label">Practicar</div>
-                <a href="{{ url_for('quizzes') }}" class="nav-link {% if request.endpoint in ('quizzes', 'solve_quiz') %}active{% endif %}">❓ Quizzes</a>
-                <a href="{{ url_for('tutor_page') }}" class="nav-link {% if request.endpoint == 'tutor_page' %}active{% endif %}">🎓 Tutor</a>
+                <a href="{{ url_for('quizzes') }}" class="nav-link {% if request.endpoint in ('quizzes', 'solve_quiz') %}active{% endif %}">Quizzes</a>
+                <a href="{{ url_for('tutor_page') }}" class="nav-link {% if request.endpoint == 'tutor_page' %}active{% endif %}">Tutor</a>
 
                 <div class="nav-section-label">Seguimiento</div>
-                <a href="{{ url_for('progress') }}" class="nav-link {% if request.endpoint == 'progress' %}active{% endif %}">📊 Mi Progreso</a>
-                <a href="{{ url_for('study_plan') }}" class="nav-link {% if request.endpoint == 'study_plan' %}active{% endif %}">📝 Plan de Estudio</a>
-                <a href="{{ url_for('subjects') }}" class="nav-link {% if request.endpoint == 'subjects' %}active{% endif %}">⚙️ Mis Materias</a>
-                <a href="{{ url_for('exam') }}" class="nav-link {% if request.endpoint == 'exam' %}active{% endif %}">📑 Modelo de Examen</a>
+                <a href="{{ url_for('progress') }}" class="nav-link {% if request.endpoint == 'progress' %}active{% endif %}">Mi Progreso</a>
+                <a href="{{ url_for('study_plan') }}" class="nav-link {% if request.endpoint == 'study_plan' %}active{% endif %}">Plan de Estudio</a>
+                <a href="{{ url_for('subjects') }}" class="nav-link {% if request.endpoint == 'subjects' %}active{% endif %}">Mis Materias</a>
+                <a href="{{ url_for('exam') }}" class="nav-link {% if request.endpoint == 'exam' %}active{% endif %}">Modelo de Examen</a>
                 {% if current_user.is_admin %}
-                <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">👑 Admin</a>
+                <a href="{{ url_for('admin_panel') }}" class="nav-link {% if request.endpoint == 'admin_panel' %}active{% endif %}">Admin</a>
                 {% endif %}
             </nav>
             <div class="sidebar-footer">

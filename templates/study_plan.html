@@ -2,16 +2,26 @@
 {% block title %}Plan de Estudio — Agente de Estudio{% endblock %}
 
 {% block content %}
-<h1 class="page-title">📝 Plan de Estudio</h1>
+<h1 class="page-title">Plan de Estudio</h1>
 
 {% if materials %}
 <div class="section glass-card">
     <form method="POST" id="planForm">
         <div class="form-group">
-            <label>Materiales a incluir (vacío = todos)</label>
+            <label>Nombre del plan</label>
+            <input type="text" name="title" id="planTitle" required
+                   placeholder="Ej: Plan de Ética semana 1, Plan Cálculo parcial, etc."
+                   value="Plan de estudio">
+        </div>
+        <div class="form-group">
+            <label>Materiales a incluir <span class="text-muted">(sin selección = todos)</span></label>
             <select name="material_ids" multiple class="multi-select">
-                {% for m in materials %}
-                <option value="{{ m.id }}">{{ m.filename }} ({{ m.subject }})</option>
+                {% for subject, mats in materials | groupby('subject') %}
+                <optgroup label="{{ subject }}">
+                    {% for m in mats %}
+                    <option value="{{ m.id }}">{{ m.filename }}</option>
+                    {% endfor %}
+                </optgroup>
                 {% endfor %}
             </select>
         </div>
@@ -29,11 +39,7 @@
             <label>Temas prioritarios (separados por coma)</label>
             <input type="text" name="priority" placeholder="Ej: integrales, cinemática">
         </div>
-        <div class="form-group">
-            <label>Título del plan</label>
-            <input type="text" name="title" value="Plan de estudio - 7 días">
-        </div>
-        <button type="submit" class="btn btn-primary" id="planGenBtn">📝 Generar Plan</button>
+        <button type="submit" class="btn btn-primary" id="planGenBtn">Generar Plan</button>
     </form>
 </div>
 {% else %}
@@ -50,7 +56,7 @@
             <!-- Header -->
             <div class="plan-card-header" onclick="togglePlanCard(this)">
                 <div class="plan-card-header-left">
-                    <span class="plan-card-icon">📝</span>
+                    <span class="plan-card-icon"></span>
                     <div>
                         <div class="plan-card-title">{{ plan.title }}</div>
                         <div class="plan-card-meta">{{ plan.created_at[:10] }} · {{ plan.days }} días · {{ plan.hours_per_day }}h/día</div>

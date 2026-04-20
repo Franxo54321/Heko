@@ -762,17 +762,42 @@ select:focus {
   cursor: pointer;
   position: relative;
   color: var(--color-ink-muted);
+  min-height: 100px;
 }
-.file-upload-area:hover {
+.file-upload-area:hover,
+.file-upload-area.drag-over {
   border-color: var(--color-accent);
   background: var(--color-accent-light);
   color: var(--color-accent);
 }
-.file-upload-area input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+.file-upload-area.drag-over {
+  transform: scale(1.01);
+}
+.file-upload-prompt {
+  pointer-events: none;
+}
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+.file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+.file-list li:last-child { border-bottom: none; }
+.file-list-name {
+  font-weight: 500;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 320px;
 }
 
 

@@ -406,7 +406,7 @@ def study_plan():
         hours = float(request.form.get("hours", 3.0))
         priority = request.form.get("priority", "")
         priority_list = [t.strip() for t in priority.split(",") if t.strip()] if priority else None
-        title = request.form.get("title", f"Plan de estudio - {days} días")
+        title = request.form.get("title", "").strip() or f"Plan de estudio - {days} días"
 
         result = orchestrator.create_study_plan(
             user_id=g.uid,

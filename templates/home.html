@@ -2,25 +2,25 @@
 {% block title %}Inicio — Agente de Estudio{% endblock %}
 
 {% block content %}
-<h1 class="page-title">📚 Agente de Estudio Inteligente</h1>
+<h1 class="page-title">Agente de Estudio Inteligente</h1>
 
 <!-- ── Métricas ─────────────────────────────────────────── -->
 <div class="metrics-grid">
     <div class="metric-card glass-card">
         <span class="metric-value">{{ stats.total_materiales }}</span>
-        <span class="metric-label">📄 Materiales</span>
+        <span class="metric-label">Materiales</span>
     </div>
     <div class="metric-card glass-card">
         <span class="metric-value">{{ stats.total_quizzes }}</span>
-        <span class="metric-label">❓ Quizzes creados</span>
+        <span class="metric-label">Quizzes creados</span>
     </div>
     <div class="metric-card glass-card">
         <span class="metric-value">{{ stats.quizzes_completados }}</span>
-        <span class="metric-label">✅ Quizzes resueltos</span>
+        <span class="metric-label">Quizzes resueltos</span>
     </div>
     <div class="metric-card glass-card">
         <span class="metric-value">{{ stats.puntaje_promedio }}%</span>
-        <span class="metric-label">📊 Puntaje promedio</span>
+        <span class="metric-label">Puntaje promedio</span>
     </div>
 </div>
 
@@ -50,7 +50,7 @@
 
 <!-- ── Subida rápida ───────────────────────────────────── -->
 <div class="section glass-card">
-    <h2>📂 Subir archivos por unidad</h2>
+    <h2>Subir archivos por unidad</h2>
     <form method="POST" action="{{ url_for('upload_home') }}" enctype="multipart/form-data" id="homeUploadForm">
         <div class="form-row">
             <div class="form-group flex-1">
@@ -86,21 +86,20 @@
             <label>Archivos</label>
             <input type="file" name="files" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" required>
         </div>
-        <button type="submit" class="btn btn-primary" id="homeUploadBtn">🚀 Subir a esta unidad</button>
+        <button type="submit" class="btn btn-primary" id="homeUploadBtn">Subir a esta unidad</button>
     </form>
 </div>
 
 <!-- ── Materiales por unidad ───────────────────────────── -->
 <div class="section">
-    <h2>📚 Materiales por unidad</h2>
+    <h2>Materiales por unidad</h2>
     {% if units_data %}
         {% for u in units_data %}
         <details class="glass-card expandable">
-            <summary>📁 {{ u.name }} ({{ u.materials|length }} archivo{{ 's' if u.materials|length != 1 else '' }})</summary>
+            <summary>{{ u.name }} ({{ u.materials|length }} archivo{{ 's' if u.materials|length != 1 else '' }})</summary>
             <div class="expandable-content">
                 {% for m in u.materials %}
                 <div class="material-item">
-                    {{ '📄' if m.file_type == 'pdf' else '🖼️' }}
                     <strong>{{ m.filename }}</strong> — {{ m.subject }} ({{ m.created_at[:10] }})
                 </div>
                 {% endfor %}
@@ -125,7 +124,7 @@ function toggleOtherSubject(sel) {
 document.getElementById('homeUploadForm').addEventListener('submit', function() {
     var btn = document.getElementById('homeUploadBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ Subiendo y procesando…';
+    btn.textContent = 'Subiendo y procesando…';
 });
 </script>
 {% endblock %}

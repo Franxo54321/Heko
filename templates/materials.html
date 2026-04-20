@@ -2,7 +2,7 @@
 {% block title %}Mis Materiales — Agente de Estudio{% endblock %}
 
 {% block content %}
-<h1 class="page-title">📋 Mis Materiales</h1>
+<h1 class="page-title">Mis Materiales</h1>
 
 <!-- ── Filters bar ───────────────────────────────────────── -->
 <form method="GET" class="filters-bar">
@@ -52,7 +52,7 @@
     <details class="glass-card expandable" open>
       <summary>
         <span class="unit-header">
-          <span class="unit-header-title">📁 {{ unit_label }}</span>
+          <span class="unit-header-title">{{ unit_label }}</span>
           <span class="unit-header-count">{{ mats|length }} archivo{{ 's' if mats|length != 1 }}</span>
           {% set subj = mats[0].subject if mats else '' %}
           {% if subj %}<span class="badge badge-subject">{{ subj }}</span>{% endif %}
