@@ -827,6 +827,37 @@ def study_plan_audio_text(plan_id):
     return jsonify({"title": plan["title"], "text": plain})
 
 
+@app.route("/study-plan/<int:plan_id>/audio-download")
+@login_required
+def study_plan_audio_download(plan_id):
+    """Generate and download MP3 via gTTS."""
+    plan = database.get_study_plan(plan_id)
+    if not plan or plan["user_id"] != g.uid:
+        flash("Plan no encontrado.", "error")
+        return redirect(url_for("study_plan"))
+
+    import io
+    import re
+    from gtts import gTTS
+
+    plain = _md_to_plain(plan["plan_markdown"])
+    text_for_tts = re.sub(r"\n{2,}", ". ... ", plain)
+    text_for_tts = re.sub(r"\n", ". ", text_for_tts)
+
+    tts = gTTS(text=text_for_tts, lang="es", slow=False)
+    buf = io.BytesIO()
+    tts.write_to_fp(buf)
+    buf.seek(0)
+
+    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
+    return send_file(
+        buf,
+        mimetype="audio/mpeg",
+        as_attachment=True,
+        download_name=f"{safe_title}.mp3",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------

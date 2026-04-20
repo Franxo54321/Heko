@@ -83,6 +83,10 @@
                             onclick="toggleAudio(this, {{ plan.id }})">
                         <span class="plan-export-icon">♪</span> <span class="plan-audio-label">Escuchar</span>
                     </button>
+                    <a href="{{ url_for('study_plan_audio_download', plan_id=plan.id) }}" class="btn btn-secondary btn-sm plan-export-btn"
+                       onclick="var s=this.querySelector('.plan-dl-label'); s.textContent='Generando MP3…'; this.style.pointerEvents='none'">
+                        <span class="plan-export-icon">MP3</span> <span class="plan-dl-label">Descargar MP3</span>
+                    </a>
                     <button class="btn btn-ghost btn-sm plan-audio-stop" id="audioStop-{{ plan.id }}" style="display:none"
                             onclick="stopAudio({{ plan.id }})">
                         Detener
