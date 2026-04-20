@@ -106,7 +106,12 @@ def create_study_plan(
         return {"error": "No hay materiales cargados. Sube archivos primero."}
 
     summaries = [
-        {"title": m["filename"], "summary": m["summary"], "subject": m["subject"]}
+        {
+            "title": m["filename"],
+            "summary": m.get("summary", ""),
+            "subject": m.get("subject", "General"),
+            "raw_text": m.get("raw_text", ""),
+        }
         for m in materials
     ]
 
