@@ -868,31 +868,46 @@ def study_plan_audio_text(plan_id):
 @login_required
 def study_plan_audio_download(plan_id):
     """Generate and download MP3 via gTTS."""
+    import io
+    import re
+
     plan = database.get_study_plan(plan_id)
     if not plan or plan["user_id"] != g.uid:
         flash("Plan no encontrado.", "error")
         return redirect(url_for("study_plan"))
 
-    import io
-    import re
-    from gtts import gTTS
+    try:
+        from gtts import gTTS
+    except ImportError as exc:
+        app.logger.error("gTTS not installed: %s", exc)
+        return f"Error: gTTS no instalado ({exc})", 500
 
-    plain = _md_to_plain(plan["plan_markdown"])
-    text_for_tts = re.sub(r"\n{2,}", ". ... ", plain)
-    text_for_tts = re.sub(r"\n", ". ", text_for_tts)
+    try:
+        plain = _md_to_plain(plan.get("plan_markdown") or "")
+        text_for_tts = re.sub(r"\n{2,}", ". ", plain)
+        text_for_tts = re.sub(r"\n", ". ", text_for_tts).strip()
+        # Limitar a ~3000 chars para evitar timeout en Railway
+        if len(text_for_tts) > 3000:
+            text_for_tts = text_for_tts[:3000] + "... Fin del resumen."
+        if not text_for_tts:
+            text_for_tts = "Plan de estudio sin contenido."
 
-    tts = gTTS(text=text_for_tts, lang="es", slow=False)
-    buf = io.BytesIO()
-    tts.write_to_fp(buf)
-    buf.seek(0)
+        tts = gTTS(text=text_for_tts, lang="es", slow=False)
+        buf = io.BytesIO()
+        tts.write_to_fp(buf)
+        buf.seek(0)
 
-    safe_title = re.sub(r"[^\w\s-]", "", plan["title"]).strip().replace(" ", "_")[:50]
-    return send_file(
-        buf,
-        mimetype="audio/mpeg",
-        as_attachment=True,
-        download_name=f"{safe_title}.mp3",
-    )
+        raw_title = plan.get("title") or "plan"
+        safe_title = re.sub(r"[^\w\s-]", "", str(raw_title)).strip().replace(" ", "_")[:50] or "plan"
+        return send_file(
+            buf,
+            mimetype="audio/mpeg",
+            as_attachment=True,
+            download_name=f"{safe_title}.mp3",
+        )
+    except Exception as exc:
+        app.logger.exception("Audio generation failed for plan %s: %s", plan_id, exc)
+        return f"Error generando MP3: {type(exc).__name__}: {exc}", 500
 
 
 # ---------------------------------------------------------------------------
