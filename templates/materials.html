@@ -357,7 +357,42 @@
   function renderTo(el, text) {
     if (!text) { el.innerHTML = '<p class="text-muted">No disponible.</p>'; return; }
     if (window.marked) {
-      try { el.innerHTML = marked.parse(text); return; } catch(e) {}
+      try {
+        // Proteger bloques LaTeX antes de que marked los corrompa
+        var mathBlocks = [];
+        var protected_text = text
+          // Bloques display: $$...$$
+          .replace(/\$\$([\s\S]+?)\$\$/g, function(match) {
+            mathBlocks.push(match);
+            return '%%%MATH' + (mathBlocks.length - 1) + '%%%';
+          })
+          // Inline: $...$
+          .replace(/\$([^\n$]+?)\$/g, function(match) {
+            mathBlocks.push(match);
+            return '%%%MATH' + (mathBlocks.length - 1) + '%%%';
+          });
+
+        var html = marked.parse(protected_text);
+
+        // Restaurar los bloques LaTeX (sin que marked los haya tocado)
+        html = html.replace(/%%%MATH(\d+)%%%/g, function(_, i) {
+          return mathBlocks[parseInt(i)];
+        });
+
+        el.innerHTML = html;
+
+        // Renderizar KaTeX en el elemento recién inyectado
+        if (window.renderMathInElement) {
+          renderMathInElement(el, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$',  right: '$',  display: false}
+            ],
+            throwOnError: false
+          });
+        }
+        return;
+      } catch(e) {}
     }
     el.textContent = text;
   }
