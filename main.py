@@ -23,9 +23,25 @@ orchestrator.init()
 
 
 def _main() -> None:  # noqa: C901
+    # Usar abspath para garantizar rutas correctas en Streamlit Cloud
+    import base64 as _b64
+    _ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+    # ---------------------------------------------------------------------------
+    # Favicon — se carga ANTES de set_page_config para que tome efecto
+    # ---------------------------------------------------------------------------
+    _fav_path = os.path.join(_ASSETS_DIR, "favicon.svg")
+    _page_icon: str | bytes = "🎓"
+    _fav_b64 = ""
+    if os.path.exists(_fav_path):
+        with open(_fav_path, "rb") as _fv:
+            _fav_raw = _fv.read()
+            _fav_b64 = _b64.b64encode(_fav_raw).decode()
+        _page_icon = _fav_raw  # Streamlit acepta bytes de imagen como page_icon
+
     st.set_page_config(
         page_title="Heko",
-        page_icon="🎓",
+        page_icon=_page_icon,
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -33,24 +49,31 @@ def _main() -> None:  # noqa: C901
     # ---------------------------------------------------------------------------
     # Heko CSS — Design System
     # ---------------------------------------------------------------------------
-    _css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
+    _css_path = os.path.join(_ASSETS_DIR, "style.css")
     if os.path.exists(_css_path):
         with open(_css_path, encoding="utf-8") as _f:
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
+    else:
+        st.warning(f"⚠️ CSS no encontrado en: {_css_path}")
 
-    # Favicon SVG + Google Fonts
-    import base64 as _b64
-    _fav_path = os.path.join(os.path.dirname(__file__), "assets", "favicon.svg")
-    _fav_tag = ""
-    if os.path.exists(_fav_path):
-        with open(_fav_path, "rb") as _fv:
-            _fv_b64 = _b64.b64encode(_fv.read()).decode()
-        _fav_tag = f'<link rel="shortcut icon" href="data:image/svg+xml;base64,{_fv_b64}"/>'
-    st.markdown(
-        f'{_fav_tag}'
-        '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>',
-        unsafe_allow_html=True,
-    )
+    # Google Fonts + favicon override via JS (garantiza que va al <head>)
+    _font_link = '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>'
+    if _fav_b64:
+        _fav_js = (
+            "<script>"
+            "(function(){"
+            "var l=document.querySelector('link[rel~=\"icon\"]');"
+            "if(l)l.href='data:image/svg+xml;base64," + _fav_b64 + "';"
+            "else{"
+            "var n=document.createElement('link');"
+            "n.rel='shortcut icon';n.type='image/svg+xml';"
+            "n.href='data:image/svg+xml;base64," + _fav_b64 + "';"
+            "document.head.appendChild(n);}"
+            "})();"
+            "</script>"
+        )
+        st.html(_fav_js)
+    st.markdown(_font_link, unsafe_allow_html=True)
 
     # ---------------------------------------------------------------------------
     # Cookies — posición fija en el árbol para evitar deltaPath crash
