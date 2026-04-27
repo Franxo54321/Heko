@@ -24,19 +24,33 @@ orchestrator.init()
 
 def _main() -> None:  # noqa: C901
     st.set_page_config(
-        page_title="Agente de Estudio",
-        page_icon="📚",
+        page_title="Heko",
+        page_icon="🎓",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
     # ---------------------------------------------------------------------------
-    # Antigravity CSS - glassmorphism, animaciones, profundidad espacial
+    # Heko CSS — Design System
     # ---------------------------------------------------------------------------
     _css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
     if os.path.exists(_css_path):
         with open(_css_path, encoding="utf-8") as _f:
             st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
+
+    # Favicon SVG + Google Fonts
+    import base64 as _b64
+    _fav_path = os.path.join(os.path.dirname(__file__), "assets", "favicon.svg")
+    _fav_tag = ""
+    if os.path.exists(_fav_path):
+        with open(_fav_path, "rb") as _fv:
+            _fv_b64 = _b64.b64encode(_fv.read()).decode()
+        _fav_tag = f'<link rel="shortcut icon" href="data:image/svg+xml;base64,{_fv_b64}"/>'
+    st.markdown(
+        f'{_fav_tag}'
+        '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>',
+        unsafe_allow_html=True,
+    )
 
     # ---------------------------------------------------------------------------
     # Cookies — posición fija en el árbol para evitar deltaPath crash
@@ -83,9 +97,18 @@ def _main() -> None:  # noqa: C901
     # AUTENTICACIÓN
     # =========================================================================
 
+    # Logo SVG reutilizable (marca Heko)
+    _HEKO_MARK_SVG = '<svg width="{size}" height="{size}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="13" fill="#9D8FFF"/><rect x="11" y="11" width="9" height="26" rx="2.5" fill="#0C0A14"/><rect x="28" y="11" width="9" height="26" rx="2.5" fill="#0C0A14"/><path d="M20 25 L23.5 20 L28 25" stroke="#0C0A14" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
     def _show_auth():
         """Muestra pantalla de login / registro / verificación."""
-        st.title("📚 Agente de Estudio")
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:14px;margin-bottom:28px;padding:12px 0;">'
+            f'{_HEKO_MARK_SVG.format(size=48)}'
+            f'<span style="font-weight:800;font-size:32px;letter-spacing:-0.03em;color:#EAE8F7;font-family:\'Plus Jakarta Sans\',sans-serif;">Heko</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
         # ---- Pantalla de verificación pendiente ----
         pv = st.session_state.pending_verification
@@ -247,8 +270,25 @@ def _main() -> None:  # noqa: C901
     # Sidebar — Navegación
     # ---------------------------------------------------------------------------
 
-    st.sidebar.title("📚 Agente de Estudio")
-    st.sidebar.markdown(f"👤 **{USER.get('display_name') or USER.get('username', '')}**")
+    # Sidebar: logo + wordmark
+    st.sidebar.markdown(
+        f'<div style="display:flex;align-items:center;gap:9px;padding:4px 0 14px;">'
+        f'{_HEKO_MARK_SVG.format(size=30)}'
+        f'<span style="font-weight:800;font-size:21px;letter-spacing:-0.03em;color:#EAE8F7;font-family:\'Plus Jakarta Sans\',sans-serif;">Heko</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # User card
+    _display_name = USER.get("display_name") or USER.get("username", "")
+    _initials = "".join(w[0].upper() for w in _display_name.split()[:2]) if _display_name else "U"
+    st.sidebar.markdown(
+        f'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:6px;">'
+        f'<div style="width:28px;height:28px;border-radius:50%;background:#241E44;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#9D8FFF;flex-shrink:0;">{_initials}</div>'
+        f'<span style="font-size:12.5px;font-weight:600;color:#EAE8F7;font-family:\'Plus Jakarta Sans\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{_display_name}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
     if st.sidebar.button("Cerrar sesión"):
         if st.session_state.session_token:
             database.delete_session(st.session_state.session_token)
