@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='heko.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- Apply stored theme before paint to avoid flash -->
     <script>
     (function(){var t=localStorage.getItem('heko-theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t?t==='dark':d)document.documentElement.setAttribute('data-theme','dark');})();
@@ -25,6 +26,7 @@
         {% if current_user %}
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='favicon.svg') }}" alt="Heko Logo" class="sidebar-logo">
                 <h2>Agente de Estudio</h2>
                 <button class="sidebar-toggle" id="sidebarClose" aria-label="Cerrar menú">✕</button>
             </div>
