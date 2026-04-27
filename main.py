@@ -378,7 +378,7 @@ def _main() -> None:  # noqa: C901
     # 🏠 Inicio
     # ---------------------------------------------------------------------------
     elif page == "Inicio":
-        st.title("📚 Agente de Estudio Inteligente")
+        st.title("Agente de Estudio Inteligente")
         st.markdown(
             """
         Bienvenido a tu asistente de estudio personalizado.
@@ -458,7 +458,7 @@ def _main() -> None:  # noqa: C901
 
         # Materiales agrupados por unidad
         st.divider()
-        st.subheader("📚 Materiales por unidad")
+        st.subheader("Materiales por unidad")
         all_units = database.get_all_units(UID)
         if all_units:
             for u in all_units:
