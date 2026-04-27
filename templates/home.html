@@ -2,7 +2,10 @@
 {% block title %}Inicio — Agente de Estudio{% endblock %}
 
 {% block content %}
-<h1 class="page-title">Agente de Estudio Inteligente</h1>
+<div class="page-title-wrap">
+    <img src="{{ url_for('static', filename='favicon.svg') }}" alt="Heko" width="40" height="40" style="border-radius:10px;flex-shrink:0;">
+    <h1 class="page-title">Agente de Estudio Inteligente</h1>
+</div>
 
 <!-- ── Métricas ─────────────────────────────────────────── -->
 <div class="metrics-grid">
