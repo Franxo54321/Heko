@@ -23,57 +23,57 @@ orchestrator.init()
 
 
 def _main() -> None:  # noqa: C901
-    # Usar abspath para garantizar rutas correctas en Streamlit Cloud
+    from pathlib import Path as _Path
     import base64 as _b64
-    _ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+    # pathlib.resolve() garantiza ruta absoluta real en cualquier entorno
+    _ASSETS_DIR = _Path(__file__).resolve().parent / "assets"
 
     # ---------------------------------------------------------------------------
-    # Favicon — se carga ANTES de set_page_config para que tome efecto
+    # Favicon — se lee antes de set_page_config
     # ---------------------------------------------------------------------------
-    _fav_path = os.path.join(_ASSETS_DIR, "favicon.svg")
-    _page_icon: str | bytes = "🎓"
+    _fav_path = _ASSETS_DIR / "favicon.svg"
     _fav_b64 = ""
-    if os.path.exists(_fav_path):
-        with open(_fav_path, "rb") as _fv:
-            _fav_raw = _fv.read()
-            _fav_b64 = _b64.b64encode(_fav_raw).decode()
-        _page_icon = _fav_raw  # Streamlit acepta bytes de imagen como page_icon
+    if _fav_path.exists():
+        _fav_b64 = _b64.b64encode(_fav_path.read_bytes()).decode()
 
     st.set_page_config(
         page_title="Heko",
-        page_icon=_page_icon,
+        page_icon="🎓",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
     # ---------------------------------------------------------------------------
-    # Heko CSS — Design System
+    # Heko CSS — Design System (heko.css)
     # ---------------------------------------------------------------------------
-    _css_path = os.path.join(_ASSETS_DIR, "style.css")
-    if os.path.exists(_css_path):
-        with open(_css_path, encoding="utf-8") as _f:
-            st.markdown(f"<style>{_f.read()}</style>", unsafe_allow_html=True)
+    _css_path = _ASSETS_DIR / "heko.css"
+    if _css_path.exists():
+        st.markdown(f"<style>{_css_path.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
     else:
-        st.warning(f"⚠️ CSS no encontrado en: {_css_path}")
+        st.error(f"CSS no encontrado: {_css_path}")
 
-    # Google Fonts + favicon override via JS (garantiza que va al <head>)
-    _font_link = '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>'
+    # Google Fonts
+    st.markdown(
+        '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>',
+        unsafe_allow_html=True,
+    )
+
+    # Favicon override via JS al <head>
     if _fav_b64:
-        _fav_js = (
+        st.html(
             "<script>"
             "(function(){"
+            "function setFav(){"
             "var l=document.querySelector('link[rel~=\"icon\"]');"
-            "if(l)l.href='data:image/svg+xml;base64," + _fav_b64 + "';"
-            "else{"
-            "var n=document.createElement('link');"
-            "n.rel='shortcut icon';n.type='image/svg+xml';"
-            "n.href='data:image/svg+xml;base64," + _fav_b64 + "';"
-            "document.head.appendChild(n);}"
+            "if(!l){l=document.createElement('link');l.rel='shortcut icon';document.head.appendChild(l);}"
+            "l.type='image/svg+xml';"
+            f"l.href='data:image/svg+xml;base64,{_fav_b64}';"
+            "}"
+            "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setFav);}else{setFav();}"
             "})();"
             "</script>"
         )
-        st.html(_fav_js)
-    st.markdown(_font_link, unsafe_allow_html=True)
 
     # ---------------------------------------------------------------------------
     # Cookies — posición fija en el árbol para evitar deltaPath crash
